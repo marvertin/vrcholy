@@ -34,7 +34,7 @@ fileNameToCoord fileName =
         znamEW = case ew of
             "E" -> 1
             "W" -> -1
-     in  ((read sirka :: Int) * znamNS, (read delka :: Int) * znamEW) 
+     in  ((read delka :: Int) * znamNS, (read sirka :: Int) * znamEW) 
 
 pair :: [Word8] -> [Int]     
 pair [] = []

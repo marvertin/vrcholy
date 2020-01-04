@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="GeoGet 2.10.4.804" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="https://www.geoget.cz/GpxExtensions/v2 https://www.geoget.cz/GpxExtensions/v2/geoget.xsd http://www.groundspeak.com/cache/1/0 http://www.groundspeak.com/cache/1/0/cache.xsd http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+ <metadata>
+   <desc>Geoget data file</desc>
+   <time>2019-12-06T15:13:49.940</time>
+ </metadata>
+
+ <wpt lat="49.4847222222" lon="16.6597222222">
+  <name>VR123456789</name>
+  <desc><![CDATA[Deskripšn vrcholu]]></desc>
+  <link href="">
+    <text><![CDATA[Komentář k vrcholu]]></text>
+  </link>
+  <sym>SymVrchol</sym>
+  <type>TypeVrchol</type>
+  <elevation>1520</elevation>
+ </wpt>
+
+</gpx>

@@ -24,6 +24,8 @@ dependencies:
 - directory
 - regex-posix
 - bytestring
+- string-interpolate
+- containers
 
 library:
   source-dirs: src
