@@ -30,7 +30,7 @@ bodXml ((x,y), elevation) =
  let latitude = fromIntegral y * kvoc   
      longitude = fromIntegral x * kvoc
      desc = show elevation
-     name = "VR" ++ show x ++ show y
+     name = "VR_" ++ show x ++ "_" ++ show y
  in [i|
 <wpt lat="#{latitude}" lon="#{longitude}">
   <name>#{name}</name>
