@@ -3,7 +3,9 @@ module Hledac
     okoli,
     zamapuj,
     jeKandidat,
-    jeProminentni
+    jeProminentni,
+    rozdelNaOstrovy,
+    odstranDuplicity,
     ) where
 
 import Lib
@@ -28,6 +30,37 @@ okoli sit (x,y) = [
     dej sit (x+1, y),
     dej sit (x+1, y+1)
   ]
+
+-- Rozdělí hustou síť na ostrovy podle děr v neexistujících datech
+rozdelNaOstrovy :: Sit -> [Sit]
+rozdelNaOstrovy sit  = ost sit [] []
+  where
+     --     zbývající body -> pozice k probrání -> vyrobené ostrovy -> vsechny ostroy
+     ost :: Sit -> [Mou] -> [Sit] -> [Sit]   --
+     ost sit [] ovy 
+       | M.null sit = ovy -- je to hotovo
+       | otherwise = ost sit [ (fst . head . M.elems) sit ] (M.empty : ovy) -- zahajujeme nový ostrov
+     ost sit (m : mrest) oo@(o : orest)  
+       | M.member m o = ost sit mrest oo -- už ho máme v ostrově
+       | otherwise = case sit M.!? m of
+           Nothing -> ost sit mrest oo -- bod odděluje ostrovy
+           Just bod@(m,_) -> ost (M.delete m sit) (map fst (okoli sit m) ++ mrest) (M.insert m bod o : orest)
+
+
+odstranDuplicity :: [Bod] -> [Bod]           
+odstranDuplicity body = map (vystred . M.elems) ((rozdelNaOstrovy . zamapuj) body)
+
+
+-- vyrobí bod z prázdného seznamu, který je nějako uprostřed        
+vystred :: [Bod] -> Bod
+vystred body =
+    let n = length body
+    in ((
+         (sum $ map (fst . fst) body) `div` n,
+         (sum $ map (snd . fst) body) `div` n
+       ), (snd . head) body)
+
+
 
 jeKandidat :: Sit -> Bod -> Bool
 jeKandidat sit (mou ,vyska) =
