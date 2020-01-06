@@ -14,5 +14,5 @@ type Mnm = Int
 type Bod = (Mou, Mnm)
 
 -- Celá síť bodů reprezenotvaná jako mapa
-type Sit = M.Map Mou Bod
+type Sit = M.Map Mou Mnm
 

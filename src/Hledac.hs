@@ -15,7 +15,7 @@ import qualified Data.Map.Lazy as M
 import qualified Data.Set as S
 
 zamapuj :: [Bod] -> Sit
-zamapuj = M.fromList . (map (\b -> (fst b, b)))
+zamapuj = M.fromList . (map (\b -> (fst b, snd b)))
 
 minimalniProminence = 10
 
@@ -39,16 +39,16 @@ rozdelNaOstrovy sit  = ost sit [] []
      ost :: Sit -> [Mou] -> [Sit] -> [Sit]   --
      ost sit [] ovy 
        | M.null sit = ovy -- je to hotovo
-       | otherwise = ost sit [ (fst . head . M.elems) sit ] (M.empty : ovy) -- zahajujeme nový ostrov
+       | otherwise = ost sit [ (fst . head . M.assocs) sit ] (M.empty : ovy) -- zahajujeme nový ostrov
      ost sit (m : mrest) oo@(o : orest)  
        | M.member m o = ost sit mrest oo -- už ho máme v ostrově
        | otherwise = case sit M.!? m of
            Nothing -> ost sit mrest oo -- bod odděluje ostrovy
-           Just bod@(m,_) -> ost (M.delete m sit) (map fst (okoli sit m) ++ mrest) (M.insert m bod o : orest)
+           Just udaj -> ost (M.delete m sit) (map fst (okoli sit m) ++ mrest) (M.insert m udaj o : orest)
 
 
 odstranDuplicity :: [Bod] -> [Bod]           
-odstranDuplicity body = map (vystred . M.elems) ((rozdelNaOstrovy . zamapuj) body)
+odstranDuplicity body = map (vystred . M.assocs) ((rozdelNaOstrovy . zamapuj) body)
 
 
 -- vyrobí bod z prázdného seznamu, který je nějako uprostřed        
@@ -63,7 +63,7 @@ vystred body =
 
 
 jeKandidat :: Sit -> Bod -> Bool
-jeKandidat sit (mou ,vyska) =
+jeKandidat sit (mou, vyska) =
     all (\(_,v) -> v <= vyska) (okoli sit mou)
 
 jeProminentni :: Sit -> Bod -> Bool
@@ -81,5 +81,5 @@ dej :: Sit -> Mou -> Bod
 dej sit mou =
     case (M.lookup mou sit) of
        Nothing -> (mou, 10000) -- hodne moc je kolem nas
-       Just bod -> bod 
+       Just mnm -> (mou, mnm)
       
