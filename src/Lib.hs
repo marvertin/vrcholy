@@ -1,5 +1,5 @@
 module Lib
-    ( Mou, Mnm, Bod, Sit
+    ( Mou, Mnm, Bod, Sit, Sit0
     ) where
 
 import qualified Data.Map.Lazy as M
@@ -13,6 +13,8 @@ type Mnm = Int
 -- Bod jako kombinace souřadnic a nadmořské výšky
 type Bod = (Mou, Mnm)
 
+type Sit0 = M.Map Mou
+
 -- Celá síť bodů reprezenotvaná jako mapa
-type Sit = M.Map Mou Mnm
+type Sit = Sit0 Mnm
 

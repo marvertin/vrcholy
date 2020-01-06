@@ -1,6 +1,5 @@
 module Hledac
     ( 
-    okoli,
     zamapuj,
     jeKandidat,
     jeProminentni,
@@ -10,6 +9,7 @@ module Hledac
 
 import Lib
 import Data.List
+import Data.Maybe
 
 import qualified Data.Map.Lazy as M
 import qualified Data.Set as S
@@ -19,24 +19,39 @@ zamapuj = M.fromList . (map (\b -> (fst b, snd b)))
 
 minimalniProminence = 10
 
-okoli :: Sit -> Mou -> [Bod]
-okoli sit (x,y) = [
-    dej sit (x-1, y-1),
-    dej sit (x-1, y),
-    dej sit (x-1, y+1),
-    dej sit (x, y-1),
-    dej sit (x, y+1),
-    dej sit (x+1, y-1),
-    dej sit (x+1, y),
-    dej sit (x+1, y+1)
+okoli0 :: Sit0 a -> Mou -> [a]
+okoli0 sit bod = catMaybes $ map dej0 (okoliMou bod) 
+  where
+    dej0 mou = M.lookup mou sit
+    
+
+-- Okolí nějak=ého bodu bez tohoto budu, tedy 8 okolních bodů
+okoliMou :: Mou -> [Mou]
+okoliMou (x,y) = [
+    (x-1, y-1),
+    (x-1, y),
+    (x-1, y+1),
+    (x, y-1),
+    (x, y+1),
+    (x+1, y-1),
+    (x+1, y),
+    (x+1, y+1)
   ]
+        
+    
+okoli :: Sit -> Mou -> [Bod]
+okoli sit bod = 
+    map (dej sit) (okoliMou bod) 
+
+
 
 -- Rozdělí hustou síť na ostrovy podle děr v neexistujících datech
-rozdelNaOstrovy :: Sit -> [Sit]
+-- je mu úplně jedno, co jsou hodnoty, zda výšky nebo něco jiného, to se bude hodit při počítání prominencí
+rozdelNaOstrovy :: Sit0 a -> [Sit0 a]
 rozdelNaOstrovy sit  = ost sit [] []
   where
      --     zbývající body -> pozice k probrání -> vyrobené ostrovy -> vsechny ostroy
-     ost :: Sit -> [Mou] -> [Sit] -> [Sit]   --
+     ost :: Sit0 a -> [Mou] -> [Sit0 a] -> [Sit0 a]   --
      ost sit [] ovy 
        | M.null sit = ovy -- je to hotovo
        | otherwise = ost sit [ (fst . head . M.assocs) sit ] (M.empty : ovy) -- zahajujeme nový ostrov
@@ -44,7 +59,7 @@ rozdelNaOstrovy sit  = ost sit [] []
        | M.member m o = ost sit mrest oo -- už ho máme v ostrově
        | otherwise = case sit M.!? m of
            Nothing -> ost sit mrest oo -- bod odděluje ostrovy
-           Just udaj -> ost (M.delete m sit) (map fst (okoli sit m) ++ mrest) (M.insert m udaj o : orest)
+           Just udaj -> ost (M.delete m sit) (okoliMou m ++ mrest) (M.insert m udaj o : orest)
 
 
 odstranDuplicity :: [Bod] -> [Bod]           
@@ -83,3 +98,4 @@ dej sit mou =
        Nothing -> (mou, 10000) -- hodne moc je kolem nas
        Just mnm -> (mou, mnm)
       
+
