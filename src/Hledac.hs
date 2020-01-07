@@ -27,21 +27,22 @@ okoli0 sit bod = catMaybes $ map dej0 (okoliMou bod)
 
 -- Okolí nějak=ého bodu bez tohoto budu, tedy 8 okolních bodů
 okoliMou :: Mou -> [Mou]
-okoliMou (x,y) = [
-    (x-1, y-1),
-    (x-1, y),
-    (x-1, y+1),
-    (x, y-1),
-    (x, y+1),
-    (x+1, y-1),
-    (x+1, y),
-    (x+1, y+1)
-  ]
-        
+okoliMou mou = mou -:++ []
+
+(-:++) :: Mou -> [Mou] -> [Mou]
+(x, y) -:++ moul = (
+   (x-1, y-1) :
+   (x-1, y) :
+   (x-1, y+1) :
+   (x, y-1) :
+   (x, y+1) :
+   (x+1, y-1) :
+   (x+1, y) :
+   (x+1, y+1) :
+   moul
+ )
     
-okoli :: Sit -> Mou -> [Bod]
-okoli sit bod = 
-    map (dej sit) (okoliMou bod) 
+
 
 
 
@@ -59,7 +60,7 @@ rozdelNaOstrovy sit  = ost sit [] []
        | M.member m o = ost sit mrest oo -- už ho máme v ostrově
        | otherwise = case sit M.!? m of
            Nothing -> ost sit mrest oo -- bod odděluje ostrovy
-           Just udaj -> ost (M.delete m sit) (okoliMou m ++ mrest) (M.insert m udaj o : orest)
+           Just udaj -> ost (M.delete m sit) (m -:++ mrest) (M.insert m udaj o : orest)
 
 
 odstranDuplicity :: [Bod] -> [Bod]           
@@ -97,5 +98,9 @@ dej sit mou =
     case (M.lookup mou sit) of
        Nothing -> (mou, 10000) -- hodne moc je kolem nas
        Just mnm -> (mou, mnm)
+
+okoli :: Sit -> Mou -> [Bod]
+okoli sit bod = 
+    map (dej sit) (okoliMou bod)        
       
 
