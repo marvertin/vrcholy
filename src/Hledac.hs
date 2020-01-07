@@ -11,6 +11,8 @@ module Hledac
 import Lib
 import Data.List
 import Data.Maybe
+import Data.Tuple
+import Debug.Trace
 
 import qualified Data.Map.Lazy as M
 import qualified Data.Set as S
@@ -70,12 +72,18 @@ odstranDuplicity body = map (vystred . M.assocs) ((rozdelNaOstrovy . zamapuj) bo
 
 -- vyrobí bod z prázdného seznamu, který je nějako uprostřed        
 vystred :: [Bod] -> Bod
-vystred body =
-    let n = length body
-    in ((
-         (sum $ map (fst . fst) body) `div` n,
-         (sum $ map (snd . fst) body) `div` n
-       ), (snd . head) body)
+vystred body = (vystredMou (map fst body), (snd . head) body)
+
+
+       -- vyrobí bod z prázdného seznamu, který je nějako uprostřed        
+vystredMou :: [Mou] -> Mou
+vystredMou mous =
+    let n = length mous
+    in (
+         (sum $ map fst mous) `div` n,
+         (sum $ map snd mous) `div` n
+       )
+
 
 
 
@@ -109,14 +117,15 @@ okoli sit bod =
 --
 type Sitbo = Sit0 Bost
 
-potopaSveta :: Sit -> [Vrch]
-potopaSveta sit = potopaSveta' M.empty (rozhladinuj sit)
+potopaSveta :: [Bod] -> [Vrch]
+potopaSveta body = potopaSveta' (M.singleton (0,0) (Bost ([(0,0)], 40000 ))) (rozhladinuj body)
 
 potopaSveta' :: Sitbo -> [Hladina] -> [Vrch]
 potopaSveta' _ [] = []
 potopaSveta' sit (hla : hlaRest) = 
     let
-      (sitNova, vrcholyHladiny) = vyresUroven (sit `M.union` (hladinaToSit hla)) (snd hla)
+      
+      (sitNova, vrcholyHladiny) = trace ("hla " ++ show hla) $ vyresUroven (sit `M.union` (hladinaToSit hla)) (snd (traceShowId hla))
       vrcholySpodnejsich = potopaSveta' sitNova hlaRest
     in vrcholyHladiny ++ vrcholySpodnejsich
   where
@@ -129,7 +138,7 @@ potopaSveta' sit (hla : hlaRest) =
     --    2. seznam vrcholů, které se staly vrcholy ostrovů právě spojených s ostrovem s vyšším vrcholem
     vyresUroven :: Sitbo -> Mnm -> (Sitbo, [Vrch])
     vyresUroven sit mnm = 
-      let ostrovy = rozdelNaOstrovy sit
+      let ostrovy = trace ("sitka je " ++ show sit) ( rozdelNaOstrovy sit)
       --in  (M.empty, [])
       in foldl accumOstrov (M.empty, []) ostrovy
         where
@@ -141,25 +150,49 @@ potopaSveta' sit (hla : hlaRest) =
     -- Totéž co vyresUroven, ale resi pro jeden ostrov
     vyresOstrov :: Sitbo -> Mnm -> (Sitbo, [Vrch])  
     vyresOstrov sit mnm = 
+      -- vrskoMapa má klíče nadmořské výšky všech vrcholů již dříve nalezených na ostrovech
+      -- hodnoty jsou pak seznamy hladin, které byly u každého bodu
       let vrskoMapa = grupuj (snd . bost2vrch) bost2vrch $ filter jeBost (M.elems sit)
           vcholky = najdiVrcholy (M.deleteMax vrskoMapa)
-          novaSit = zarovnej sit ( (head . snd) (M.findMax vrskoMapa)) -- to bude nejvyšší bod ostrova
+          novaSit = zarovnej ( (head . snd) (M.findMax vrskoMapa)) sit -- to bude nejvyšší bod ostrova
 
       in (novaSit, vcholky) 
+       where
+          -- Dostáváme vrchloy právě sloučen=ho ostrova ale s odříznutým
+          -- nejvyšším vrcholem. V mapě je tolik hodnot, kolik máme vrchoů nejvyšších bodů
+          -- vše co je v seznamu hladin je stejné
+          najdiVrcholy :: M.Map Mnm [Hladina] -> [Vrch]
+          najdiVrcholy vrsici = 
+                  map (\(vyska, ( (mous, _) : _)) ->  ( ( vystredMou mous, vyska ), ([], mnm), [] )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
 
-    najdiVrcholy :: M.Map Mnm [Hladina] -> [Vrch]
-    najdiVrcholy _ = [] -- TODO
+    zarovnej :: Hladina -> Sitbo ->  Sitbo
+    zarovnej vrchol sit =  kolona sit
+       where
+         kolona = M.fromList . map (doplnVrchol vrchol) . filter filtrujKraje . map nahradVnitrni . M.toList
 
-    zarovnej :: Sitbo -> Hladina -> Sitbo
-    zarovnej  x _ = x -- TODO
+         nahradVnitrni :: (Mou, Bost) -> (Mou, Bost)
+         nahradVnitrni bod@(_, Kraj) = bod  -- kraje necháváme, je to optimalizace at nehledáme zbytečně
+         nahradVnitrni bod@(mou, bost)
+           | jeVnitrnimBodem mou = (mou, Kraj)
+           | otherwise = bod
+         
+         filtrujKraje :: (Mou, Bost) -> Bool
+         filtrujKraje (mou, Kraj) = maJenKrajeKolem mou
+         filtrujKraje _ = True
+
+         doplnVrchol :: Hladina -> (Mou, Bost) -> (Mou, Bost)
+         doplnVrchol vrchol (mou, _) = (mou, Bost vrchol)
+
+         jeVnitrnimBodem = all (flip M.member sit) . okoliMou
+         maJenKrajeKolem = (all jeKraj) . catMaybes . map (flip M.lookup sit) . okoliMou
 
 
 hladinaToSit :: Hladina -> Sitbo
 hladinaToSit hladina = M.fromList (map (\mou -> (mou, Pobrezi)) (fst hladina)  )
 
 -- rozdělí celou síť na hladiny
-rozhladinuj :: Sit -> [Hladina]
-rozhladinuj sit = [] -- TODO
+rozhladinuj :: [Bod] -> [Hladina]
+rozhladinuj = reverse . map swap . M.toList . grupuj snd fst 
 
 
 

@@ -39,9 +39,9 @@ po = do
 
     let body = load (zip souradky obsahy)
     putStrLn $ "Pocet bodu:        " ++  (show . length) body
-    let sit = zamapuj body
-    putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
-    let vrcholy = potopaSveta  sit
+    -- let sit = zamapuj body
+    -- putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
+    let vrcholy = potopaSveta  body
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
 
 main :: IO ()

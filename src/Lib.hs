@@ -1,6 +1,6 @@
 module Lib
     ( Mou, Mnm, Bod, Hladina, Bost(..), Vrch, Sit, Sit0,
-    grupuj, jeBost, bost2vrch
+    grupuj, jeBost, bost2vrch, jeKraj
     ) where
 
 import qualified Data.Map.Lazy as M
@@ -28,9 +28,11 @@ data Bost =
     Kraj -- bod je okrajovým vnitřím bodem ostrova, jenž byl redukován kvůli výkonnosti
   | Pobrezi -- právě přidaný bod, který právě vylezl na hladinu
   | Bost Hladina -- nejvyšší vrcholy ostrova, kte kterému Bost přísluší
-
   deriving (Show, Read)
-         
+
+jeKraj :: Bost -> Bool
+jeKraj Kraj = True
+jeKraj _ = False
 
 -- Nalezený vrchol i s atributy
 type Vrch = (Bod, -- vrchol
