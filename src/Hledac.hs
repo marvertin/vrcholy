@@ -5,6 +5,7 @@ module Hledac
     jeProminentni,
     rozdelNaOstrovy,
     odstranDuplicity,
+    potopaSveta
     ) where
 
 import Lib
@@ -103,4 +104,64 @@ okoli :: Sit -> Mou -> [Bod]
 okoli sit bod = 
     map (dej sit) (okoliMou bod)        
       
+---------------------------------------------------------------------------------
+--  Upouštění vody po potopě světa a postupné zaplavování
+--
+type Sitbo = Sit0 Bost
+
+potopaSveta :: Sit -> [Vrch]
+potopaSveta sit = potopaSveta' M.empty (rozhladinuj sit)
+
+potopaSveta' :: Sitbo -> [Hladina] -> [Vrch]
+potopaSveta' _ [] = []
+potopaSveta' sit (hla : hlaRest) = 
+    let
+      (sitNova, vrcholyHladiny) = vyresUroven (sit `M.union` (hladinaToSit hla)) (snd hla)
+      vrcholySpodnejsich = potopaSveta' sitNova hlaRest
+    in vrcholyHladiny ++ vrcholySpodnejsich
+  where
+    -- vstupem je 
+    --    1. síť ostrovů po ustoupení vody o 1 metr, kdy se právě vynořilo "Pobrezi" ještě bez vrcholů
+    --    2. nadmořská výška pobřeží
+    -- výstupem je:
+    --    1. síť upravená tak, že pobřeží získá svůj vrch na svých ostrovech a ntitřky jsou kvůli optimalizaci vymazané
+    --       Tato síť neobdsahuje žádné Pobrezi, bude však obsahovat Kraj
+    --    2. seznam vrcholů, které se staly vrcholy ostrovů právě spojených s ostrovem s vyšším vrcholem
+    vyresUroven :: Sitbo -> Mnm -> (Sitbo, [Vrch])
+    vyresUroven sit mnm = 
+      let ostrovy = rozdelNaOstrovy sit
+      --in  (M.empty, [])
+      in foldl accumOstrov (M.empty, []) ostrovy
+        where
+          accumOstrov :: (Sitbo, [Vrch]) -> Sitbo -> (Sitbo, [Vrch])
+          accumOstrov (accumSit, accumVrcholy) ostrov =
+            let (ostrovSit, ostrovVrcholy) = vyresOstrov ostrov mnm
+            in (accumSit `M.union` ostrovSit, ostrovVrcholy ++ accumVrcholy)
+
+    -- Totéž co vyresUroven, ale resi pro jeden ostrov
+    vyresOstrov :: Sitbo -> Mnm -> (Sitbo, [Vrch])  
+    vyresOstrov sit mnm = 
+      let vrskoMapa = grupuj (snd . bost2vrch) bost2vrch $ filter jeBost (M.elems sit)
+          vcholky = najdiVrcholy (M.deleteMax vrskoMapa)
+          novaSit = zarovnej sit ( (head . snd) (M.findMax vrskoMapa)) -- to bude nejvyšší bod ostrova
+
+      in (novaSit, vcholky) 
+
+    najdiVrcholy :: M.Map Mnm [Hladina] -> [Vrch]
+    najdiVrcholy _ = [] -- TODO
+
+    zarovnej :: Sitbo -> Hladina -> Sitbo
+    zarovnej  x _ = x -- TODO
+
+
+hladinaToSit :: Hladina -> Sitbo
+hladinaToSit hladina = M.fromList (map (\mou -> (mou, Pobrezi)) (fst hladina)  )
+
+-- rozdělí celou síť na hladiny
+rozhladinuj :: Sit -> [Hladina]
+rozhladinuj sit = [] -- TODO
+
+
+
+
 

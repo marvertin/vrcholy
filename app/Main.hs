@@ -27,6 +27,23 @@ ostrovovani body mez = do
     let ostrN = rozdelNaOstrovy (zamapuj (filter ((> mez) . snd)  body) );
     putStrLn $ "Pocet ostrovu > "  ++ show mez ++ "     " ++ (show . length) ostrN
 
+po :: IO () 
+po = do
+    putStrLn $ "Potopa sveta"
+    soubory <- listDirectory "data"
+    -- print $ map fileNameToCoord soubory
+    putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
+
+    obsahy <- mapM B.readFile $ map (dirData ++ ) soubory
+    let souradky = map fileNameToCoord soubory 
+
+    let body = load (zip souradky obsahy)
+    putStrLn $ "Pocet bodu:        " ++  (show . length) body
+    let sit = zamapuj body
+    putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
+    let vrcholy = potopaSveta  sit
+    putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
+
 main :: IO ()
 main = do
     putStrLn $ "Hledani vrcholu"
