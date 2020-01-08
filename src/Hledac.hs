@@ -125,7 +125,7 @@ potopaSveta' _ [] = []
 potopaSveta' sit (hla : hlaRest) = 
     let
       
-      (sitNova, vrcholyHladiny) = trace ("hla " ++ show hla) $ vyresUroven (sit `M.union` (hladinaToSit hla)) (snd (traceShowId hla))
+      (sitNova, vrcholyHladiny) = vyresUroven (sit `M.union` (hladinaToSit hla)) (snd hla)
       vrcholySpodnejsich = potopaSveta' sitNova hlaRest
     in vrcholyHladiny ++ vrcholySpodnejsich
   where
@@ -138,9 +138,11 @@ potopaSveta' sit (hla : hlaRest) =
     --    2. seznam vrcholů, které se staly vrcholy ostrovů právě spojených s ostrovem s vyšším vrcholem
     vyresUroven :: Sitbo -> Mnm -> (Sitbo, [Vrch])
     vyresUroven sit mnm = 
-      let ostrovy = trace ("sitka je " ++ show sit) ( rozdelNaOstrovy sit)
+      let ostrovy = ( rozdelNaOstrovy sit)
       --in  (M.empty, [])
-      in foldl accumOstrov (M.empty, []) ostrovy
+          vysl@(sit2, vrycholy) = foldl accumOstrov (M.empty, []) ostrovy
+          zprava = "Hladina: " ++ show mnm ++ "   ostrovu: " ++  (show.length) ostrovy ++ "  sit: " ++ (show.M.size) sit ++ " ==> " ++ (show.M.size) sit2 ++ "  vrcholy: " ++ (show.length) vrycholy
+      in trace zprava vysl
         where
           accumOstrov :: (Sitbo, [Vrch]) -> Sitbo -> (Sitbo, [Vrch])
           accumOstrov (accumSit, accumVrcholy) ostrov =
@@ -150,20 +152,41 @@ potopaSveta' sit (hla : hlaRest) =
     -- Totéž co vyresUroven, ale resi pro jeden ostrov
     vyresOstrov :: Sitbo -> Mnm -> (Sitbo, [Vrch])  
     vyresOstrov sit mnm = 
-      -- vrskoMapa má klíče nadmořské výšky všech vrcholů již dříve nalezených na ostrovech
-      -- hodnoty jsou pak seznamy hladin, které byly u každého bodu
-      let vrskoMapa = grupuj (snd . bost2vrch) bost2vrch $ filter jeBost (M.elems sit)
-          vcholky = najdiVrcholy (M.deleteMax vrskoMapa)
-          novaSit = zarovnej ( (head . snd) (M.findMax vrskoMapa)) sit -- to bude nejvyšší bod ostrova
+      let
+          -- Podostrovy rekosnstruují původní ostrovy, je jich přesně tolik, kolik ostrovů se právě spojilo. 
+          --   Klíčem je hladina nejvyšších vrcholů původních ostrovů. Pokud se právě spojilo
+          --      více stejně vysokých ostrovů, je v klíči více hladin se stejnou výškou
+          --   Hodnotou je množina souřadnic ostrova (vlastně jen jeho okraje)
+          podostrovy :: M.Map Hladina [Mou]
+          podostrovy = grupuj (bost2vrch . snd) fst $ filter (jeBost . snd) (M.toList sit)
+          -- vrskoMapa má klíče nadmořské výšky nejvyšších vrcholů všech spojovasných ostrovů
+          -- hodnoty jsou pak seznamy hladin vrcholů původních ostrovů. Typicky je zde jedna hodnota. Pokdu se spojovalo více ostrovů o stejné výšce, tak je jich více.
+          -- počet prvků mapy odpovídá počtu právě spojených ostrovů (nebo méně, pokud byly některé spojované ostrovy stejně vysoké)
+          vrskoMapa :: M.Map Mnm [[Mou]]
+          vrskoMapa = grupuj snd fst (M.keys podostrovy)
 
-      in (novaSit, vcholky) 
+      in if (M.null vrskoMapa) then
+                  let 
+                      -- vynoření špiček ostrova, stávají se základem ostrova a později nejvyšším vrcholem
+                      vrnci = M.keys sit
+                      novaSit = M.map (const $ Bost (vrnci, mnm) )  sit
+                  in (novaSit, [])
+              else    
+                  let (nejvyssiMnm, moumous) = M.findMax vrskoMapa
+                      novaSit = zarovnej (concat moumous, nejvyssiMnm) sit -- to bude nejvyšší bod ostrova
+                      vcholky = najdiVrcholy (M.deleteMax vrskoMapa)
+                      in (novaSit, vcholky) 
+
        where
-          -- Dostáváme vrchloy právě sloučen=ho ostrova ale s odříznutým
-          -- nejvyšším vrcholem. V mapě je tolik hodnot, kolik máme vrchoů nejvyšších bodů
-          -- vše co je v seznamu hladin je stejné
-          najdiVrcholy :: M.Map Mnm [Hladina] -> [Vrch]
+          -- Dostáváme to co je ve vrskoMapa, ale s odříznutým nejvyšším vrcholem, neboť ten teď
+          -- neřešíme nebo nemůžeme určit jeho klíčové sedlo v tomto okamžiku
+          najdiVrcholy :: M.Map Mnm [[Mou]] -> [Vrch]
           najdiVrcholy vrsici = 
-                  map (\(vyska, ( (mous, _) : _)) ->  ( ( vystredMou mous, vyska ), ([], mnm), [] )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
+                  -- TODO nevystřeďovat, ale dodat každý vrchol samostatně
+                  -- TODO klíčové sedlo spočítat
+                  -- TODO mateřský island vrchol spočítat
+                  -- TODO omezit na rozumnou prominenci
+                  map (\(vyska, ( mous : _)) ->  ( ( vystredMou mous, vyska ), ([], mnm), [] )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
 
     zarovnej :: Hladina -> Sitbo ->  Sitbo
     zarovnej vrchol sit =  kolona sit
