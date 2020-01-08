@@ -27,6 +27,23 @@ ostrovovani body mez = do
     let ostrN = rozdelNaOstrovy (zamapuj (filter ((> mez) . snd)  body) );
     putStrLn $ "Pocet ostrovu > "  ++ show mez ++ "     " ++ (show . length) ostrN
 
+gener100  = [((x,y), x+y) | x <- [1..100], y <- [1..100]]    
+gener100a = [((x,y), min (x+y) 40) | x <- [1..100], y <- [1..100]]    
+gener100b = [((x,y), y) | x <- [1..100], y <- [1..100]]    
+gener10x= [((x,y), 45) | x <- [1..10], y <- [1..10]]    
+gener4 = [((x,y), 444) | x <- [1..4], y <- [1..4]]    
+gener2 = [((x,y), 444) | x <- [1..2], y <- [1..2]]    
+gener1 = [((5,5),42)]    
+gener0 = []    
+
+pp = do
+    let pust = gener100b
+    putStrLn $ "generovane: " ++ (show.length) pust
+--    print $ rozhladinuj pust
+    let vrcholy = potopaSveta  pust
+    putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
+    putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
+
 main :: IO ()
 main = do
     putStrLn $ "Potopa sveta"

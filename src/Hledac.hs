@@ -118,7 +118,7 @@ okoli sit bod =
 type Sitbo = Sit0 Bost
 
 potopaSveta :: [Bod] -> [Vrch]
-potopaSveta body = potopaSveta' (M.singleton (0,0) (Bost ([(0,0)], 40000 ))) (rozhladinuj body)
+potopaSveta body = potopaSveta' M.empty (rozhladinuj body)
 
 potopaSveta' :: Sitbo -> [Hladina] -> [Vrch]
 potopaSveta' _ [] = []
