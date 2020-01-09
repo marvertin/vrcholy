@@ -28,7 +28,12 @@ data Bost =
     Kraj -- bod je okrajovým vnitřím bodem ostrova, jenž byl redukován kvůli výkonnosti
   | Pobrezi -- právě přidaný bod, který právě vylezl na hladinu
   | Bost Hladina -- nejvyšší vrcholy ostrova, kte kterému Bost přísluší
-  deriving (Show, Read)
+  -- deriving (Read)
+
+instance Show Bost where
+   show Kraj = "."
+   show Pobrezi = "_"
+   show _ = "*"
 
 jeKraj :: Bost -> Bool
 jeKraj Kraj = True

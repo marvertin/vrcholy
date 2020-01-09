@@ -5,7 +5,8 @@ module Hledac
     jeProminentni,
     rozdelNaOstrovy,
     odstranDuplicity,
-    potopaSveta
+    potopaSveta,
+    zarovnej,
     ) where
 
 import Lib
@@ -188,26 +189,26 @@ potopaSveta' sit (hla : hlaRest) =
                   -- TODO omezit na rozumnou prominenci
                   map (\(vyska, ( mous : _)) ->  ( ( vystredMou mous, vyska ), ([], mnm), [] )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
 
-    zarovnej :: Hladina -> Sitbo ->  Sitbo
-    zarovnej vrchol sit =  kolona sit
-       where
-         kolona = M.fromList . map (doplnVrchol vrchol) . filter filtrujKraje . map nahradVnitrni . M.toList
+zarovnej :: Hladina -> Sitbo ->  Sitbo
+zarovnej vrchol sit = 
+      let sit2 = M.mapWithKey (nahradVnitrni sit) sit  
+      in M.map nahradVrchol . M.filterWithKey (filtrujKraje sit2) $ sit2
+    where
 
-         nahradVnitrni :: (Mou, Bost) -> (Mou, Bost)
-         nahradVnitrni bod@(_, Kraj) = bod  -- kraje necháváme, je to optimalizace at nehledáme zbytečně
-         nahradVnitrni bod@(mou, bost)
-           | jeVnitrnimBodem mou = (mou, Kraj)
-           | otherwise = bod
-         
-         filtrujKraje :: (Mou, Bost) -> Bool
-         filtrujKraje (mou, Kraj) = maJenKrajeKolem mou
-         filtrujKraje _ = True
+      nahradVnitrni :: Sitbo -> Mou -> Bost -> Bost
+      nahradVnitrni _ _ Kraj = Kraj  -- kraje necháváme, je to optimalizace at nehledáme zbytečně
+      nahradVnitrni sit1 mou bost
+        | all (flip M.member sit1) . okoliMou $ mou = Kraj
+        | otherwise = bost
+      
+      filtrujKraje :: Sitbo -> Mou -> Bost -> Bool
+      filtrujKraje sit2 mou Kraj = not . (all jeKraj) . catMaybes . map (flip M.lookup sit2) . okoliMou $ mou
+      filtrujKraje _ _ _ = True
 
-         doplnVrchol :: Hladina -> (Mou, Bost) -> (Mou, Bost)
-         doplnVrchol vrchol (mou, _) = (mou, Bost vrchol)
+      nahradVrchol :: Bost -> Bost
+      nahradVrchol Kraj = Kraj
+      nahradVrchol _  = Bost vrchol
 
-         jeVnitrnimBodem = all (flip M.member sit) . okoliMou
-         maJenKrajeKolem = (all jeKraj) . catMaybes . map (flip M.lookup sit) . okoliMou
 
 
 hladinaToSit :: Hladina -> Sitbo
