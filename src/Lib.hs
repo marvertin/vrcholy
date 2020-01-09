@@ -1,5 +1,5 @@
 module Lib
-    ( Mou, Mnm, Bod, Hladina, Bost(..), Vrch, Sit, Sit0,
+    ( Mou, Mnm, Bod, Hladina, Bost(..), Vrch(..), Sit, Sit0,
     grupuj, jeBost, bost2vrch, jeKraj, rozbal2
     ) where
 
@@ -40,9 +40,10 @@ jeKraj Kraj = True
 jeKraj _ = False
 
 -- Nalezený vrchol i s atributy
-type Vrch = (Bod, -- vrchol
-            Hladina, -- klíčové sedlo vrcholu
-             [Bod]) -- mateřeské vrcholy, mohou být i různých výšek
+data Vrch = Vrch { vrVrchol :: Bod, -- vrchol
+              vrKlicoveSedlo :: Hladina, -- klíčové sedlo vrcholu
+              vrMaterskeVrcholy :: [Bod]
+            } -- mateřeské vrcholy, mohou být i různých výšek
 
 
 -- Zgrupuje seunam do mapy tak, že aplikue funkce na získání klíčů a hodnot a vrací 

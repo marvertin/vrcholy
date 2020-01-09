@@ -185,12 +185,9 @@ potopaSveta' sit (hla : hlaRest) =
           najdiVrcholy :: M.Map Mnm [[Mou]] -> [Vrch]
           najdiVrcholy vrsici = 
               let 
-                vrchyJakoBody = map swap $ (M.toList vrsici) >>= rozbal2 >>= rozbal2;
-                  -- TODO nevystřeďovat, ale dodat každý vrchol samostatně
-                  -- TODO omezit na rozumnou prominenci
-              --in    map (\(vyska, ( mous : _)) ->  ( ( vystredMou mous, vyska ), (klicoveSedlo, mnm), materskeVrcholy )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
-                
-              in  map (\bod -> (bod, (klicoveSedlo, mnm), materskeVrcholy )) vrchyJakoBody
+                asponTrochuProminentniVrsici = filter (\ (vyska, _) -> vyska - mnm > minimalniProminence)  (M.toList  vrsici)
+                vrchyJakoBody = map swap $ asponTrochuProminentniVrsici >>= rozbal2 >>= rozbal2;
+              in  map (\bod ->  Vrch {vrVrchol = bod, vrKlicoveSedlo = (klicoveSedlo, mnm), vrMaterskeVrcholy = materskeVrcholy }) vrchyJakoBody
 
 -- TODO mateřský island vrchol spočítat                  
 materskeVrcholy :: [Bod]

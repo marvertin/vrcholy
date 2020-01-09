@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 module Zapisovac
-    (   x, v, bodyXml
+    (   bodyXml
     ) where
 
 import Lib
@@ -25,11 +25,13 @@ paticka = [i|
 </gpx>
 |]
 
-bodXml :: Bod -> String
-bodXml ((x,y), elevation) = 
+bodXml :: Vrch -> String
+bodXml  Vrch { vrVrchol = ((x,y), elevation), vrKlicoveSedlo = (_, mnmSedlo) } = 
+
+--bodXml ((x,y), elevation) = 
  let latitude = fromIntegral y * kvoc   
      longitude = fromIntegral x * kvoc
-     desc = show elevation
+     desc = show elevation ++ " (" ++ show (elevation - mnmSedlo)  ++ ")"
      name = "VR_" ++ show x ++ "_" ++ show y
  in [i|
 <wpt lat="#{latitude}" lon="#{longitude}">
@@ -41,9 +43,6 @@ bodXml ((x,y), elevation) =
 </wpt>
 |]
 
-v = bodyXml [((19627,55984),300), ((19628,55985),1000)]
 -- 49.2839519N, 16.3563408E
-bodyXml :: [Bod] -> String
+bodyXml :: [Vrch] -> String
 bodyXml body = hlavicka ++ (concat (map bodXml body)) ++ paticka
-x = do 
-    putStrLn $ v

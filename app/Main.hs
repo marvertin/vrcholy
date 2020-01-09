@@ -14,9 +14,15 @@ dirVysledky = "m:/Dropbox/gc/geokuk/data/"
 
 writeVysledek :: String -> [Bod] -> IO()
 writeVysledek fn body = do
+    let bodyVr = map (\bod -> Vrch {vrVrchol = bod, vrKlicoveSedlo = ([], 0), vrMaterskeVrcholy = [] } ) body
+    writeVysledekV fn bodyVr
+
+writeVysledekV :: String -> [Vrch] -> IO()
+writeVysledekV fn body = do
     let fullFn =  dirVysledky ++ fn
     putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
-    writeFile fullFn $ bodyXml body
+    writeFile fullFn (bodyXml body)
+
 
 
 jeCtverec :: Bod -> Bool
@@ -78,6 +84,8 @@ main = do
     let vrcholy = potopaSveta  body
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
+    
+    writeVysledekV "vrcholy-prominence.gpx" vrcholy
 
 po :: IO () 
 po = do
@@ -109,9 +117,7 @@ po = do
 
     let vysledek = bezdupl
     -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy.gpx" $ bodyXml kandidati
-    putStrLn $ "Zapis vysledku:     "  ++ (show . length) vysledek
-    writeFile "m:/Dropbox/gc/geokuk/data/vrcholy.gpx" $ bodyXml vysledek
-    writeVysledek "vrcholy.gpx" vysledek
+    writeVysledek "vrcholy4.gpx" vysledek
     writeVysledek "vrcholy-duplicity.gpx" prominentniVrcholy
     writeVysledek "vrcholy-kandidati.gpx" kandidati
     -- writeVysledek "sitka.gpx" body
