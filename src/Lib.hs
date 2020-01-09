@@ -1,6 +1,6 @@
 module Lib
     ( Mou, Mnm, Bod, Hladina, Bost(..), Vrch, Sit, Sit0,
-    grupuj, jeBost, bost2vrch, jeKraj
+    grupuj, jeBost, bost2vrch, jeKraj, rozbal2
     ) where
 
 import qualified Data.Map.Lazy as M
@@ -58,3 +58,6 @@ jeBost _ = False
 bost2vrch :: Bost -> Hladina
 bost2vrch (Bost vrch) = vrch
 bost2vrch x = error $ "nelez ziskat vrchol z " ++ (show x)
+
+rozbal2 :: (a, [b]) -> [(a, b)]
+rozbal2 (x, y) = zip (repeat x) y

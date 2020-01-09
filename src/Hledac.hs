@@ -161,8 +161,9 @@ potopaSveta' sit (hla : hlaRest) =
           podostrovy :: M.Map Hladina [Mou]
           podostrovy = grupuj (bost2vrch . snd) fst $ filter (jeBost . snd) (M.toList sit)
           -- vrskoMapa má klíče nadmořské výšky nejvyšších vrcholů všech spojovasných ostrovů
-          -- hodnoty jsou pak seznamy hladin vrcholů původních ostrovů. Typicky je zde jedna hodnota. Pokdu se spojovalo více ostrovů o stejné výšce, tak je jich více.
-          -- počet prvků mapy odpovídá počtu právě spojených ostrovů (nebo méně, pokud byly některé spojované ostrovy stejně vysoké)
+          -- hodnoty jsou pak seznamy hladin vrcholů původních ostrovů. Typicky je zde jedna hodnota. Pokud se spojovalo více ostrovů o stejné výšce, tak je jich více.
+          -- počet prvků mapy odpovídá počtu právě spojených ostrovů (nebo méně, pokud byly některé spojované ostrovy stejně vysoké),
+          --    ale po rozvinutí seznamů by počet prvků odpovídal přesně počtu ostrovů
           vrskoMapa :: M.Map Mnm [[Mou]]
           vrskoMapa = grupuj snd fst (M.keys podostrovy)
 
@@ -183,11 +184,23 @@ potopaSveta' sit (hla : hlaRest) =
           -- neřešíme nebo nemůžeme určit jeho klíčové sedlo v tomto okamžiku
           najdiVrcholy :: M.Map Mnm [[Mou]] -> [Vrch]
           najdiVrcholy vrsici = 
+              let 
+                vrchyJakoBody = map swap $ (M.toList vrsici) >>= rozbal2 >>= rozbal2;
                   -- TODO nevystřeďovat, ale dodat každý vrchol samostatně
-                  -- TODO klíčové sedlo spočítat
-                  -- TODO mateřský island vrchol spočítat
                   -- TODO omezit na rozumnou prominenci
-                  map (\(vyska, ( mous : _)) ->  ( ( vystredMou mous, vyska ), ([], mnm), [] )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
+              --in    map (\(vyska, ( mous : _)) ->  ( ( vystredMou mous, vyska ), (klicoveSedlo, mnm), materskeVrcholy )) (M.toList vrsici) --  ( 1602, [([(1,3),(4,8) ...], 1602)...])
+                
+              in  map (\bod -> (bod, (klicoveSedlo, mnm), materskeVrcholy )) vrchyJakoBody
+
+-- TODO mateřský island vrchol spočítat                  
+materskeVrcholy :: [Bod]
+materskeVrcholy = []
+
+-- TODO klíčové sedlo spočítat
+klicoveSedlo :: [Mou]
+klicoveSedlo = []
+
+
 
 zarovnej :: Hladina -> Sitbo ->  Sitbo
 zarovnej vrchol sit = 
