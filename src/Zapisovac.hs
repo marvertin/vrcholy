@@ -25,12 +25,25 @@ paticka = [i|
 </gpx>
 |]
 
+-- vyrobí bod z neprázdného seznamu, který je nějako uprostřed        
+vystredMou :: [Mou] -> Mou
+vystredMou mous =
+    let n = length mous
+    in (
+         (sum $ map fst mous) `div` n,
+         (sum $ map snd mous) `div` n
+       )
+
+vystred  :: [Mou] -> (Mou -> Int) -> Double
+vystred mous fn = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)
+
 bodXml :: Vrch -> String
-bodXml  Vrch { vrVrchol = ((x,y), elevation), vrKlicoveSedlo = (_, mnmSedlo) } = 
+bodXml  Vrch { vrVrchol = Kopec  elevation (Moustrov mous), vrKlicoveSedlo = Kopec mnmSedlo _ } = 
 
 --bodXml ((x,y), elevation) = 
- let latitude = fromIntegral y * kvoc   
-     longitude = fromIntegral x * kvoc
+ let latitude = vystred mous snd
+     longitude =  vystred mous fst
+     (x,y) = vystredMou mous
      desc = show elevation ++ " (" ++ show (elevation - mnmSedlo)  ++ ")"
      name = "VR_" ++ show x ++ "_" ++ show y
  in [i|

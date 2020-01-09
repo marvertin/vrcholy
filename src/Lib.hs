@@ -1,5 +1,6 @@
 module Lib
     ( Mou, Mnm, Bod, Hladina, Bost(..), Vrch(..), Sit, Sit0,
+     Moustrov(..), Hladka, Kopec(..),
     grupuj, jeBost, bost2vrch, jeKraj, rozbal2
     ) where
 
@@ -22,12 +23,16 @@ type Sit0 = M.Map Mou
 -- Celá síť bodů reprezenotvaná jako mapa
 type Sit = Sit0 Mnm
 
+type Hladka = (Mnm, [Moustrov])
+
+data Kopec = Kopec Mnm Moustrov
+   deriving (Eq)
 
 -- Bod behem hledání prominence (Bod OStrovni)
 data Bost = 
     Kraj -- bod je okrajovým vnitřím bodem ostrova, jenž byl redukován kvůli výkonnosti
   | Pobrezi -- právě přidaný bod, který právě vylezl na hladinu
-  | Bost Hladina -- nejvyšší vrcholy ostrova, kte kterému Bost přísluší
+  | Bost Hladka-- nejvyšší vrcholy ostrova, kte kterému Bost přísluší
   -- deriving (Read)
 
 instance Show Bost where
@@ -35,14 +40,19 @@ instance Show Bost where
    show Pobrezi = "_"
    show _ = "*"
 
+newtype Moustrov = Moustrov [Mou]
+  deriving (Eq, Ord)
+
+-- newtype Kopec = Kopec 
+
 jeKraj :: Bost -> Bool
 jeKraj Kraj = True
 jeKraj _ = False
 
 -- Nalezený vrchol i s atributy
-data Vrch = Vrch { vrVrchol :: Bod, -- vrchol
-              vrKlicoveSedlo :: Hladina, -- klíčové sedlo vrcholu
-              vrMaterskeVrcholy :: [Bod]
+data Vrch = Vrch { vrVrchol :: Kopec, -- vrchol
+              vrKlicoveSedlo :: Kopec, -- klíčové sedlo vrcholu
+              vrMaterskeVrcholy :: Kopec
             } -- mateřeské vrcholy, mohou být i různých výšek
 
 
@@ -56,7 +66,7 @@ jeBost :: Bost -> Bool
 jeBost (Bost _) = True
 jeBost _ = False
 
-bost2vrch :: Bost -> Hladina
+bost2vrch :: Bost -> Hladka
 bost2vrch (Bost vrch) = vrch
 bost2vrch x = error $ "nelez ziskat vrchol z " ++ (show x)
 

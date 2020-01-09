@@ -76,7 +76,7 @@ vystred :: [Bod] -> Bod
 vystred body = (vystredMou (map fst body), (snd . head) body)
 
 
-       -- vyrobí bod z prázdného seznamu, který je nějako uprostřed        
+-- vyrobí bod z neprázdného seznamu, který je nějako uprostřed        
 vystredMou :: [Mou] -> Mou
 vystredMou mous =
     let n = length mous
@@ -158,48 +158,51 @@ potopaSveta' sit (hla : hlaRest) =
           --   Klíčem je hladina nejvyšších vrcholů původních ostrovů. Pokud se právě spojilo
           --      více stejně vysokých ostrovů, je v klíči více hladin se stejnou výškou
           --   Hodnotou je množina souřadnic ostrova (vlastně jen jeho okraje)
-          podostrovy :: M.Map Hladina [Mou]
+          podostrovy :: M.Map Hladka [Mou]
           podostrovy = grupuj (bost2vrch . snd) fst $ filter (jeBost . snd) (M.toList sit)
           -- vrskoMapa má klíče nadmořské výšky nejvyšších vrcholů všech spojovasných ostrovů
-          -- hodnoty jsou pak seznamy hladin vrcholů původních ostrovů. Typicky je zde jedna hodnota. Pokud se spojovalo více ostrovů o stejné výšce, tak je jich více.
+          -- hodnoty jsou pak seznamy hladin vrcholů původních ostrovů. Typicky je zde jedna hodnota.
+          --  Pokud se spojovalo více ostrovů o stejné výšce, tak je jich více.
           -- počet prvků mapy odpovídá počtu právě spojených ostrovů (nebo méně, pokud byly některé spojované ostrovy stejně vysoké),
           --    ale po rozvinutí seznamů by počet prvků odpovídal přesně počtu ostrovů
-          vrskoMapa :: M.Map Mnm [[Mou]]
-          vrskoMapa = grupuj snd fst (M.keys podostrovy)
+          vrskoMapa :: M.Map Mnm [Moustrov]
+          vrskoMapa = M.map concat $ grupuj fst snd (M.keys podostrovy)
 
       in if (M.null vrskoMapa) then
                   let 
                       -- vynoření špiček ostrova, stávají se základem ostrova a později nejvyšším vrcholem
-                      vrnci = M.keys sit
-                      novaSit = M.map (const $ Bost (vrnci, mnm) )  sit
+                      vrnci = Moustrov $ M.keys sit
+                      novaSit = M.map (const $ Bost (mnm, [vrnci]))  sit
                   in (novaSit, [])
               else    
                   let (nejvyssiMnm, moumous) = M.findMax vrskoMapa
-                      novaSit = zarovnej (concat moumous, nejvyssiMnm) sit -- to bude nejvyšší bod ostrova
+                      novaSit = zarovnej (nejvyssiMnm, moumous) sit -- to bude nejvyšší bod ostrova
                       vcholky = najdiVrcholy (M.deleteMax vrskoMapa)
                       in (novaSit, vcholky) 
 
        where
           -- Dostáváme to co je ve vrskoMapa, ale s odříznutým nejvyšším vrcholem, neboť ten teď
           -- neřešíme nebo nemůžeme určit jeho klíčové sedlo v tomto okamžiku
-          najdiVrcholy :: M.Map Mnm [[Mou]] -> [Vrch]
+          najdiVrcholy :: M.Map Mnm [Moustrov] -> [Vrch]
           najdiVrcholy vrsici = 
               let 
                 asponTrochuProminentniVrsici = filter (\ (vyska, _) -> vyska - mnm > minimalniProminence)  (M.toList  vrsici)
-                vrchyJakoBody = map swap $ asponTrochuProminentniVrsici >>= rozbal2 >>= rozbal2;
-              in  map (\bod ->  Vrch {vrVrchol = bod, vrKlicoveSedlo = (klicoveSedlo, mnm), vrMaterskeVrcholy = materskeVrcholy }) vrchyJakoBody
+                vrchyJakoBody = map (\(mnm, moustrov) -> Kopec mnm moustrov) $ asponTrochuProminentniVrsici >>= rozbal2;
+              in  map (\bod ->  Vrch {vrVrchol = bod,
+                                     vrKlicoveSedlo = Kopec mnm klicoveSedlo, 
+                                     vrMaterskeVrcholy = materskeVrcholy }) vrchyJakoBody
 
 -- TODO mateřský island vrchol spočítat                  
-materskeVrcholy :: [Bod]
-materskeVrcholy = []
+materskeVrcholy :: Kopec
+materskeVrcholy = Kopec 0 (Moustrov [])
 
 -- TODO klíčové sedlo spočítat
-klicoveSedlo :: [Mou]
-klicoveSedlo = []
+klicoveSedlo :: Moustrov
+klicoveSedlo = Moustrov []
 
 
 
-zarovnej :: Hladina -> Sitbo ->  Sitbo
+zarovnej :: Hladka -> Sitbo ->  Sitbo
 zarovnej vrchol sit = 
       let sit2 = M.mapWithKey (nahradVnitrni sit) sit  
       in M.map nahradVrchol . M.filterWithKey (filtrujKraje sit2) $ sit2

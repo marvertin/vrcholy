@@ -14,7 +14,9 @@ dirVysledky = "m:/Dropbox/gc/geokuk/data/"
 
 writeVysledek :: String -> [Bod] -> IO()
 writeVysledek fn body = do
-    let bodyVr = map (\bod -> Vrch {vrVrchol = bod, vrKlicoveSedlo = ([], 0), vrMaterskeVrcholy = [] } ) body
+    let bodyVr = map (\bod@(mou, mnm) -> Vrch {vrVrchol = Kopec mnm (Moustrov [mou]), 
+       vrKlicoveSedlo = Kopec 0 (Moustrov []),
+       vrMaterskeVrcholy = Kopec 0 (Moustrov []) } ) body
     writeVysledekV fn bodyVr
 
 writeVysledekV :: String -> [Vrch] -> IO()
