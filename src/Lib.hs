@@ -1,6 +1,6 @@
 module Lib
     (
-    grupuj, rozbal2, fst3, snd3, thr3
+    grupuj, rozbal2, fst3, snd3, thr3, kazdyPrvekAZbytky
     ) where
 
 import qualified Data.Map.Lazy as M
@@ -22,3 +22,12 @@ snd3 (_, x, _) = x
 
 thr3 :: (a, b, c) -> c
 thr3 (_, _, x) = x
+
+-- Ze seznamu vytáhne každá zprvků jednou jako první prvek
+-- vnořených seznamů, ostatní následují v původním pořadí
+kazdyPrvekAZbytky :: [a] -> [[a]]
+kazdyPrvekAZbytky sez = kaz [] sez
+  where
+    kaz :: [a] -> [a] -> [[a]]
+    kaz _ [] = []
+    kaz s1 (x : s2) =  (x : s1 ++ s2) :  kaz (s1 ++ [x])  s2 

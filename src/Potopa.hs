@@ -71,7 +71,6 @@ potopaSveta minimalniProminence body = potopaSveta' M.empty (rozhladinuj body)
       vyresUroven :: Sitbo -> Mnm -> (Sitbo, [Vrch])
       vyresUroven sit mnmVody = 
         let ostrovy = ( rozdelNaOstrovy sit)
-        --in  (M.empty, [])
             vysl@(sit2, vrycholy) = foldl accumOstrov (M.empty, []) ostrovy
             zprava = "Hladina: " ++ show mnmVody ++ "   ostrovu: " ++  (show.length) ostrovy ++ "  sit: " ++ (show.M.size) sit ++ " ==> " ++ (show.M.size) sit2 ++ "  vrcholy: " ++ (show.length) vrycholy
         in trace zprava vysl
@@ -95,6 +94,8 @@ potopaSveta minimalniProminence body = potopaSveta' M.empty (rozhladinuj body)
             -- Tdy jsou podostrovy jako seznam
             podostrovy :: [(Mnm, [Moustrov], [Mou])] -- nadmořská výška vrcholů, seznam vrcholů o této výšce, okrajové body ostrova
             podostrovy = map (\ ((mnm, vrchy), okraje) -> (mnm, vrchy, okraje) ) . M.toList $ podostrovyMapa
+            
+            pobrezi = M.keys $ M.filter (not . jeBost) sit
 
             in if null podostrovy then
                     let 
@@ -108,32 +109,30 @@ potopaSveta minimalniProminence body = potopaSveta' M.empty (rozhladinuj body)
                         maximMnm = fst3 (maximum podostrovy) -- spoléháme na to, že výška je na prvním místě
                         (nejvyssi, nizsi) = partition (\q -> fst3 q == maximMnm) podostrovy
                         sloucenyNejvyssi = (maximMnm, nejvyssi >>= snd3)
+
+                        materskyVrchol = Kopec maximMnm ((head.snd3.head) nejvyssi) -- je to libovolny z tech vyččích vrcholů
+
+                        ostruvky = map (\ ( (mnm, vrcholy, okraje)  : zbytekOstrovu)  ->
+                                (mnm, vrcholy, nejkratsiSpoj okraje pobrezi (zbytekOstrovu ++ nejvyssi >>= thr3) )
+                            ) . filter (\ ((vyska, _, _) : _) -> vyska - mnmVody > minimalniProminence) $ -- filtrujeme aspon trochu prominentni
+                              (kazdyPrvekAZbytky nizsi)
+                        
                         novaSit = zarovnej sloucenyNejvyssi sit -- to bude nejvyšší bod ostrova
-                        vrcholx = najdiVrcholx nizsi
+                        vrcholx = najdiVrcholx ostruvky materskyVrchol
                     in (novaSit, vrcholx) 
 
         where
-            -- dostavame cely ostruvek s výškoku, vrcholkama a krajovámi body
-            najdiVrcholx :: [(Mnm, [Moustrov], [Mou])] -> [Vrch]
-            najdiVrcholx ostruvky = 
+            -- dostavame cely ostruvek s výškoku, vrcholkama a nejvyšším sedlem
+            najdiVrcholx :: [(Mnm, [Moustrov], Moustrov)] -> Kopec -> [Vrch]
+            najdiVrcholx ostruvky materskyVrchol = 
                 let 
-                  asponTrochuProminentniOstruvky = filter (\ (vyska, _, _) -> vyska - mnmVody > minimalniProminence)  ostruvky
-                  kopecky = zOstruvkuKopecky asponTrochuProminentniOstruvky
-                in  map (\kopecek ->  Vrch {vrVrchol = kopecek,
-                                            vrKlicoveSedlo = Kopec mnmVody klicoveSedlo, 
-                                            vrMaterskeVrcholy = materskeVrcholy }) kopecky
+                  kopecky = zOstruvkuKopecky ostruvky
+                in  map (\(kopecek, klicoveSedlo) ->  Vrch {vrVrchol = kopecek,
+                                                            vrKlicoveSedlo = Kopec mnmVody klicoveSedlo, 
+                                                            vrMaterskeVrcholy = materskyVrchol }) kopecky
 
-zOstruvkuKopecky :: [(Mnm, [Moustrov], [Mou])] -> [Kopec]
-zOstruvkuKopecky ostruvky = ostruvky >>= (\ (mnm, moustrovy, _)  ->  map (Kopec mnm)  moustrovy) 
-
--- TODO mateřský island vrchol spočítat                  
-materskeVrcholy :: Kopec
-materskeVrcholy = Kopec 0 (Moustrov [])
-
--- TODO klíčové sedlo spočítat
-klicoveSedlo :: Moustrov
-klicoveSedlo = Moustrov []
-
+zOstruvkuKopecky :: [(Mnm, [Moustrov], Moustrov)] -> [(Kopec, Moustrov)]
+zOstruvkuKopecky ostruvky = ostruvky >>= (\ (mnm, vrcholky, klicoveSedlo)  ->  map  (\kopec ->  (Kopec mnm kopec, klicoveSedlo) ) vrcholky) 
 
 
 zarovnej :: Hladka -> Sitbo ->  Sitbo

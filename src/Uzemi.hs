@@ -5,7 +5,8 @@
 -- Souřadnice bodu po třech vteřinách (0,0) odpovídá N0 E0
 module Uzemi
     (  Mou(..), Sit0, Moustrov(..),
-      (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy
+      (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy,
+      nejkratsiSpoj
     ) where
 
 import qualified Data.Map.Lazy as M 
@@ -86,3 +87,7 @@ rozdelNaOstrovy sit  = ost sit [] []
        | otherwise = case sit M.!? m of
            Nothing -> ost sit mrest oo -- bod odděluje ostrovy
            Just udaj -> ost (M.delete m sit) (m -:++ mrest) (M.insert m udaj o : orest)
+
+
+nejkratsiSpoj :: [Mou] -> [Mou] -> [Mou] -> Moustrov
+nejkratsiSpoj ostrov1 pobrezi ostrov2 = Moustrov []
