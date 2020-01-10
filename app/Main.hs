@@ -4,6 +4,8 @@ import Lib
 import Nacitac
 import Zapisovac
 import Hledac
+import Potopa
+import Uzemi
 
 import System.Directory
 import qualified Data.ByteString as B

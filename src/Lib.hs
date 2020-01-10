@@ -6,8 +6,7 @@ module Lib
 
 import qualified Data.Map.Lazy as M
 
--- Souřadnice bodu po třech vteřinách (0,0) odpovídá N0 E0
-type Mou = (Int, Int)
+import Uzemi
 
 -- Nadmořská výška v metrech
 type Mnm = Int
@@ -18,7 +17,7 @@ type Bod = (Mou, Mnm)
 -- Seznam bodů o stejné nadmořské výšce
 type Hladina = ([Mou], Mnm)
 
-type Sit0 = M.Map Mou
+
 
 -- Celá síť bodů reprezenotvaná jako mapa
 type Sit = Sit0 Mnm
@@ -40,8 +39,7 @@ instance Show Bost where
    show Pobrezi = "_"
    show _ = "*"
 
-newtype Moustrov = Moustrov [Mou]
-  deriving (Eq, Ord)
+
 
 -- newtype Kopec = Kopec 
 
