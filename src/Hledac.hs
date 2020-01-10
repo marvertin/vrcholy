@@ -8,6 +8,7 @@ module Hledac
 
 import Lib
 import Uzemi
+import VrchTypy
 
 import Data.List
 import Data.Maybe

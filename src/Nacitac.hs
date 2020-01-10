@@ -5,6 +5,7 @@ module Nacitac
     ) where
 
 import Lib
+import VrchTypy(Bod)
 
 import Data.Word
 import Text.Regex.Posix

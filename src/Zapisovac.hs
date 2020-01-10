@@ -3,9 +3,10 @@
 module Zapisovac
     (   bodyXml
     ) where
-
+ 
 import Lib
 import Uzemi
+import VrchTypy(Vrch(..), Kopec(..))
 import Data.String.Interpolate ( i )
 
 -- Kvocient převodu na GPS souřadnice

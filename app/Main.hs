@@ -6,6 +6,7 @@ import Zapisovac
 import Hledac
 import Potopa
 import Uzemi
+import VrchTypy
 
 import System.Directory
 import qualified Data.ByteString as B
