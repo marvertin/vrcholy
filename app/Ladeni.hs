@@ -55,7 +55,7 @@ pp = do
     let pust = gener100x
     putStrLn $ "generovane: " ++ (show.length) pust
 --    print $ rozhladinuj pust
-    let vrcholy = potopaSveta (namou pust)
+    let vrcholy = potopaSveta 0 (namou pust)
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
 

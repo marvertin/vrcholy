@@ -16,6 +16,9 @@ import  Control.Arrow
 dirData = "data/"
 dirVysledky = "m:/Dropbox/gc/geokuk/data/"
 
+minimalniProminence = 10
+
+
 writeVysledek :: String -> [Bod] -> IO()
 writeVysledek fn body = do
     let bodyVr = map (\bod@(mou, mnm) -> Vrch {vrVrchol = Kopec mnm (Moustrov [mou]), 
@@ -43,7 +46,7 @@ main = do
     putStrLn $ "Pocet bodu:        " ++  (show . length) body
     -- let sit = zamapuj body
     -- putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
-    let vrcholy = potopaSveta  body
+    let vrcholy = potopaSveta minimalniProminence body
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     
