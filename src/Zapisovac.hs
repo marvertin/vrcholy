@@ -5,6 +5,7 @@ module Zapisovac
     ) where
 
 import Lib
+import Uzemi
 import Data.String.Interpolate ( i )
 
 -- Kvocient převodu na GPS souřadnice
@@ -24,15 +25,6 @@ xsi:schemaLocation="https://www.geoget.cz/GpxExtensions/v2 https://www.geoget.cz
 paticka = [i|
 </gpx>
 |]
-
--- vyrobí bod z neprázdného seznamu, který je nějako uprostřed        
-vystredMou :: [Mou] -> Mou
-vystredMou mous =
-    let n = length mous
-    in (
-         (sum $ map fst mous) `div` n,
-         (sum $ map snd mous) `div` n
-       )
 
 vystred  :: [Mou] -> (Mou -> Int) -> Double
 vystred mous fn = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)

@@ -17,6 +17,34 @@ import qualified Data.Set as S
 
 minimalniProminence = 10
 
+type Hladka = (Mnm, [Moustrov])
+
+-- Bod behem hledání prominence (Bod OStrovni)
+data Bost = 
+    Kraj -- bod je okrajovým vnitřím bodem ostrova, jenž byl redukován kvůli výkonnosti
+  | Pobrezi -- právě přidaný bod, který právě vylezl na hladinu
+  | Bost Hladka-- nejvyšší vrcholy ostrova, kte kterému Bost přísluší
+  -- deriving (Read)
+
+jeKraj :: Bost -> Bool
+jeKraj Kraj = True
+jeKraj _ = False
+
+instance Show Bost where
+   show Kraj = "."
+   show Pobrezi = "_"
+   show _ = "*"
+
+
+jeBost :: Bost -> Bool
+jeBost (Bost _) = True
+jeBost _ = False
+
+bost2vrch :: Bost -> Hladka
+bost2vrch (Bost vrch) = vrch
+bost2vrch x = error $ "nelez ziskat vrchol z " ++ (show x)
+   
+
 ---------------------------------------------------------------------------------
 --  Upouštění vody po potopě světa a postupné zaplavování
 --
