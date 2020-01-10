@@ -1,6 +1,6 @@
 module Lib
     (
-    grupuj, rozbal2
+    grupuj, rozbal2, fst3, snd3, thr3
     ) where
 
 import qualified Data.Map.Lazy as M
@@ -13,3 +13,12 @@ grupuj fceKey fceValue list =
 
 rozbal2 :: (a, [b]) -> [(a, b)]
 rozbal2 (x, y) = zip (repeat x) y
+
+fst3 :: (a, b, c) -> a
+fst3 (x, _, _) = x
+
+snd3 :: (a, b, c) -> b
+snd3 (_, x, _) = x
+
+thr3 :: (a, b, c) -> c
+thr3 (_, _, x) = x
