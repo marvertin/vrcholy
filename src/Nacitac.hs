@@ -6,13 +6,14 @@ module Nacitac
 
 import Lib
 import VrchTypy(Bod)
+import Uzemi
 
 import Data.Word
 import Text.Regex.Posix
-import qualified Data.ByteString as B
+import qualified Data.ByteString as B 
 
 n = 1200
-souradky = [(x,y) | y <- [n,n-1..0], x <- [0..n]]
+souradky = [ Mou x y | y <- [n,n-1..0], x <- [0..n]]
 
 load :: [((Int, Int), B.ByteString)] -> [Bod]
 load = concat . (map loadOne)
@@ -21,7 +22,7 @@ loadOne :: ((Int, Int), B.ByteString) -> [Bod]
 loadOne ((rohX, rohY), bystr) = 
     let baseX = n * rohX
         baseY = n * rohY
-        posunuteSouradky = map (\(x,y) -> (baseX + x, baseY + y)) souradky
+        posunuteSouradky = map (addMou baseX baseY) souradky
     in zip posunuteSouradky (doCisel bystr)    
 
 

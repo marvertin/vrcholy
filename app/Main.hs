@@ -11,6 +11,7 @@ import VrchTypy
 import System.Directory
 import qualified Data.ByteString as B
 import qualified Data.Map.Lazy as M
+import  Control.Arrow
 
 dirData = "data/"
 dirVysledky = "m:/Dropbox/gc/geokuk/data/"
@@ -31,7 +32,7 @@ writeVysledekV fn body = do
 
 
 jeCtverec :: Bod -> Bool
-jeCtverec ((x, y),_) = x > 20100 && y > 59380 && x < 20200 &&  y < 59480
+jeCtverec (Mou x y,_) = x > 20100 && y > 59380 && x < 20200 &&  y < 59480
 
 ostrovovani :: [Bod] -> Int -> IO()
 ostrovovani body mez = do
@@ -49,6 +50,9 @@ gener1 = [((5,5),42)]
 gener0 = []    
 
 gener100x  = [((x,y), x - (dolu x y) )  | x <- [1..100], y <- [1..100]]  
+
+namou :: [((Int, Int), Int)] -> [Bod]
+namou = map (first (uncurry Mou))
 
 dolu :: Int -> Int -> Int
 dolu 50 51 = 10
@@ -68,7 +72,7 @@ pp = do
     let pust = gener100x
     putStrLn $ "generovane: " ++ (show.length) pust
 --    print $ rozhladinuj pust
-    let vrcholy = potopaSveta  pust
+    let vrcholy = potopaSveta (namou pust)
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
 

@@ -4,15 +4,22 @@
 -- 
 -- Souřadnice bodu po třech vteřinách (0,0) odpovídá N0 E0
 module Uzemi
-    (  Mou, Sit0, Moustrov(..),
-      (-:++), okoliMou, rozdelNaOstrovy, vystredMou
+    (  Mou(..), Sit0, Moustrov(..),
+      (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy
     ) where
 
-import qualified Data.Map.Lazy as M
+import qualified Data.Map.Lazy as M 
 import Data.Maybe
 
 
-type Mou = (Int, Int)
+data Mou = Mou Int Int
+  deriving (Eq, Ord, Show, Read)
+
+xx :: Mou -> Int  
+xx (Mou x _) = x
+
+yy :: Mou -> Int  
+yy (Mou _ y) = y
 
 type Sit0 = M.Map Mou    
 
@@ -32,27 +39,34 @@ okoliMou :: Mou -> [Mou]
 okoliMou mou = mou -:++ []
 
 (-:++) :: Mou -> [Mou] -> [Mou]
-(x, y) -:++ moul = (
-    (x-1, y-1) :
-    (x-1, y) :
-    (x-1, y+1) :
-    (x, y-1) :
-    (x, y+1) :
-    (x+1, y-1) :
-    (x+1, y) :
-    (x+1, y+1) :
-    moul
-  )
-      
+Mou x y -:++ moul = 
+  let xp = x + 1
+      xm = x - 1
+      yp = y + 1  
+      ym = y - 1  
+  in (
+        Mou xm ym :
+        Mou xm y :
+        Mou xm yp :
+        Mou x ym :
+        Mou x yp :
+        Mou xp ym :
+        Mou xp y :
+        Mou xp yp :
+        moul
+    )
+
+addMou :: Int -> Int -> Mou -> Mou
+addMou dX dY (Mou x y) = Mou (dX + x) (dY + y)
+
 
 -- vyrobí bod z neprázdného seznamu, který je nějako uprostřed        
 vystredMou :: [Mou] -> Mou
 vystredMou mous =
     let n = length mous
-    in (
-         (sum $ map fst mous) `div` n,
-         (sum $ map snd mous) `div` n
-       )
+    in Mou
+         ((sum $ map xx mous) `div` n)
+         ((sum $ map yy mous) `div` n)
 
 
   

@@ -34,9 +34,9 @@ bodXml :: Vrch -> String
 bodXml  Vrch { vrVrchol = Kopec  elevation (Moustrov mous), vrKlicoveSedlo = Kopec mnmSedlo _ } = 
 
 --bodXml ((x,y), elevation) = 
- let latitude = vystred mous snd
-     longitude =  vystred mous fst
-     (x,y) = vystredMou mous
+ let latitude = vystred mous yy
+     longitude =  vystred mous xx
+     Mou x y = vystredMou mous
      desc = show elevation ++ " (" ++ show (elevation - mnmSedlo)  ++ ")"
      name = "VR_" ++ show x ++ "_" ++ show y
  in [i|
