@@ -35,8 +35,17 @@ writeVysledekV fn body = do
     writeFile fullFn (bodyXml body)
 
 main :: IO ()
-main = do
-    putStrLn $ "Potopa sveta"
+main = main3
+
+main3 :: IO ()
+main3 = do
+    hladiny <- loadAll "m:/vrcholy-data/temp-vrcholy-srtm"
+    let vrcholy = potopaSveta minimalniProminence hladiny
+    writeVysledekV "vrcholy-prominence.gpx" vrcholy
+
+main2 :: IO ()
+main2 = do
+    putStrLn $ "Potopa sveta z bodu"
     soubory <- listDirectory "data"
     -- print $ map fileNameToCoord soubory
     putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
@@ -44,11 +53,11 @@ main = do
     obsahy <- mapM B.readFile $ map (dirData ++ ) soubory
     let souradky = map fileNameToCoord soubory 
 
-    let body = load (zip souradky obsahy)
+    let body = loadSrtms (zip souradky obsahy)
     putStrLn $ "Pocet bodu:        " ++  (show . length) body
     -- let sit = zamapuj body
     -- putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
-    let vrcholy = potopaSveta minimalniProminence body
+    let vrcholy = potopaSvetaZBodu minimalniProminence body
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
     
@@ -64,7 +73,7 @@ po = do
     obsahy <- mapM B.readFile $ map (dirData ++ ) soubory
     let souradky = map fileNameToCoord soubory 
 
-    let bodyVse = load (zip souradky obsahy)
+    let bodyVse = loadSrtms (zip souradky obsahy)
     let body = bodyVse
     putStrLn $ "Pocet bodu:        " ++  (show . length) body
 
@@ -91,6 +100,7 @@ po = do
     -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy.gpx" $ bodyXml (take 10000 kandidati)
 
 tt = do
-    transponujSrtm "data" "vysky"
+    transponujSrtm "m:/vrcholy-data/z-geogetu/marsov" 
+                   "m:/vrcholy-data/temp-vrcholy-srtm"
 
 

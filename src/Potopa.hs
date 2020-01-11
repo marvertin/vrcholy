@@ -1,6 +1,7 @@
 module Potopa
     ( 
       potopaSveta,
+      potopaSvetaZBodu,
       zarovnej,
     ) where
 
@@ -49,8 +50,12 @@ bost2vrch x = error $ "nelez ziskat vrchol z " ++ (show x)
 --
 type Sitbo = Sit0 Bost
 
-potopaSveta :: Mnm -> [Bod] -> [Vrch]
-potopaSveta minimalniProminence body = potopaSveta' M.empty (rozhladinuj body)
+potopaSvetaZBodu :: Mnm -> [Bod] -> [Vrch]
+potopaSvetaZBodu minimalniPromnence  body = potopaSveta minimalniPromnence (rozhladinuj body)
+
+
+potopaSveta :: Mnm -> [Hladina] -> [Vrch]
+potopaSveta minimalniProminence hladiny = potopaSveta' M.empty hladiny
  where
   potopaSveta' :: Sitbo -> [Hladina] -> [Vrch]
   potopaSveta' _ [] = []

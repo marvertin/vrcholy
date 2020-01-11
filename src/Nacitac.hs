@@ -1,31 +1,36 @@
 module Nacitac
     ( 
     fileNameToCoord,
-    load
+    loadSrtms,
+    loadSrtm
     ) where
 
 import Lib
 import VrchTypy(Bod)
 import Uzemi
 
+import Data.Int
 import Data.Word
+import Data.Tuple
 import Text.Regex.Posix
 import qualified Data.ByteString as B 
 
 n = 1200
 souradky = [ Mou x y | y <- [n,n-1..0], x <- [0..n]]
 
-load :: [((Int, Int), B.ByteString)] -> [Bod]
-load = concat . (map loadOne)
+loadSrtms :: [((Int, Int), B.ByteString)] -> [Bod]
+loadSrtms = concat . (map loadSrtm)
 
-loadOne :: ((Int, Int), B.ByteString) -> [Bod]
-loadOne ((rohX, rohY), bystr) = 
+loadSrtm :: ((Int, Int), B.ByteString) -> [Bod]
+loadSrtm ((rohX, rohY), bystr) = 
     let baseX = n * rohX
         baseY = n * rohY
+        bodyNeposunute = orezDuplicitniKraje $ zip souradky (doCisel bystr)    
         posunuteSouradky = map (addMou baseX baseY) souradky
-    in zip posunuteSouradky (doCisel bystr)    
+    in map (swap . fmap (addMou baseX baseY) . swap) bodyNeposunute
 
-
+fmap1 :: (a -> c) -> (a, b) -> (c, b)
+fmap1 f (x,y) = (f x, y)
 -- loadOne :: B.ByteString -> [Bod]
 fileNameToCoord :: String -> (Int, Int)
 fileNameToCoord fileName =
@@ -41,9 +46,13 @@ fileNameToCoord fileName =
 pair :: [Word8] -> [Int]     
 pair [] = []
 pair (hi : lo : rest) =
-    let vyska = (fromIntegral hi) * 256 + (fromIntegral lo)
+    let vyskaInt16 = (fromIntegral hi) * 256 + (fromIntegral lo) :: Int16
+        vyska = fromIntegral vyskaInt16 :: Int
     in (vyska : pair rest)
 
 
 doCisel :: B.ByteString -> [Int]
 doCisel = pair . B.unpack
+
+orezDuplicitniKraje :: [Bod] -> [Bod]
+orezDuplicitniKraje = filter (\ (Mou x y, _) -> x < 1200 && y < 1200)
