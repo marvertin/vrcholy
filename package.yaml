@@ -33,14 +33,25 @@ library:
 
 executables:
   vrcholy:
-    main:                Main.hs
-    source-dirs:         app
+    main:                MainHledani.hs
+    source-dirs:         vrcholy-hledani
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - vrcholy
+
+  vrcholy-srtm:
+    main:                MainSrtm.hs
+    source-dirs:         vrcholy-srtm
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - vrcholy
+
 
 tests:
   vrcholy-test:

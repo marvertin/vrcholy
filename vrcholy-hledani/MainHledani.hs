@@ -99,8 +99,3 @@ po = do
     -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy2.gpx" $ bodyXml body2
     -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy.gpx" $ bodyXml (take 10000 kandidati)
 
-tt = do
-    transponujSrtm "m:/vrcholy-data/z-geogetu/marsov" 
-                   "m:/vrcholy-data/temp-vrcholy-srtm"
-
-

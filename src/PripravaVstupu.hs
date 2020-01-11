@@ -3,7 +3,6 @@ module PripravaVstupu
   ( 
     transponujSrtm,
     transponuj,
-    ll,
     loadAll
     ) where
 
@@ -17,6 +16,7 @@ import Data.Tuple
 import Debug.Trace
 
 import System.Directory
+
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
@@ -24,6 +24,17 @@ import qualified Data.Set as S
 import System.FilePath.Posix
 import  Control.Arrow
 import  Control.Monad
+
+import System.IO.Unsafe (unsafeInterleaveIO)
+
+mapM_lazy :: [IO a] -> IO [a]
+mapM_lazy [] = return []
+mapM_lazy (x:xs) = do
+              r <- x
+              rs <- unsafeInterleaveIO (mapM_lazy xs)
+              return (r:rs)
+
+              
 
 -- Pro řešení potopy je vhodné mít data uspořádána podle výšek
 transponujSrtm :: FilePath -> FilePath -> IO ()
@@ -33,14 +44,13 @@ transponujSrtm srcDir destDir = do
     -- print $ map fileNameToCoord soubory
     putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
     -- obsahy <- mapM B.readFile $ 
+    createDirectoryIfMissing True destDir
     forM_ soubory $ \fileName -> do
         obracenec <- transponujFile fileName destDir
         forM_ obracenec $ \ (vyska, mous) -> do
-            let jmenoDir = destDir </> vyska2DirName vyska
-            let jmenoFile = jmenoDir </> fileName ++ "V"
+            let jmenoFile = destDir </> vyska2DirName vyska
             --putStrLn jmeno
-            createDirectoryIfMissing True jmenoDir
-            writeFile jmenoFile (show mous)
+            appendFile jmenoFile $ (unlines . map show) mous
 
 
 --        let souradky = map fileNameToCoord soubory 
@@ -79,33 +89,11 @@ loadAll :: FilePath ->  IO [Hladina]
 loadAll transpoDir = do
     vysky <- fmap (map dirName2Vyska) $ listDirectory transpoDir
     let vyskys = (reverse.sort) vysky
-    forM vyskys $ \mnm -> do
-        mous <- loadJednaVyska transpoDir mnm
-        return (mous, mnm)
+    mapM_lazy $ map (loadOne transpoDir) vyskys
 
-        
-
-
-
-
-loadJednaVyska :: FilePath -> Mnm -> IO [Mou]
-loadJednaVyska transpoDir mnm = do
-    soubory <- listDirectory (transpoDir </> vyska2DirName mnm)
-    sezyMou <- forM soubory $ \fileName -> do
-        putStrLn $ "ctu1 " ++ fileName ++ " " ++ show mnm
-        text <- readFile (transpoDir </> vyska2DirName mnm </> fileName) 
-        putStrLn "ctu2"
-        -- print $ length text
-        let mous = read text :: [Mou]
-        return mous
-    return (concat sezyMou)
-
-
-
-
-ll = loadJednaVyska "m:/vrcholy-data/temp-vrcholy-srtm" 500
-  
-
-
-
+loadOne :: FilePath -> Mnm -> IO Hladina
+loadOne transpoDir mnm = do
+    text <- readFile (transpoDir </> vyska2DirName mnm) 
+    let mous = map read (lines text) :: [Mou]
+    return (mous, mnm)
 
