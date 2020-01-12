@@ -31,7 +31,8 @@ writeVysledek fn body = do
 writeVysledekV :: String -> [Vrch] -> IO()
 writeVysledekV fn body = do
     let fullFn =  dirVysledky ++ fn
-    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
+--    toto čerpá strašně moc ramky    
+--    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
     writeFile fullFn (bodyXml body)
 
 main :: IO ()
@@ -41,8 +42,9 @@ main3 :: IO ()
 main3 = do
     hladiny <- loadAll "m:/vrcholy-data/temp-vrcholy-srtm"
     let vrcholy = potopaSveta minimalniProminence hladiny
-    putStrLn $ unlines $ map show vrcholy
---    writeVysledekV "vrcholy-prominence.gpx" vrcholy
+    --putStrLn $ unlines $ map show vrcholy
+    writeVysledekV "vrcholy-prominence2.gpx" vrcholy
+    return ()
 
 main2 :: IO ()
 main2 = do
