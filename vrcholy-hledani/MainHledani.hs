@@ -41,7 +41,8 @@ main3 :: IO ()
 main3 = do
     hladiny <- loadAll "m:/vrcholy-data/temp-vrcholy-srtm"
     let vrcholy = potopaSveta minimalniProminence hladiny
-    writeVysledekV "vrcholy-prominence.gpx" vrcholy
+    putStrLn $ unlines $ map show vrcholy
+--    writeVysledekV "vrcholy-prominence.gpx" vrcholy
 
 main2 :: IO ()
 main2 = do

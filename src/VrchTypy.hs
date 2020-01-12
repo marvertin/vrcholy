@@ -24,7 +24,7 @@ type Sit = Sit0 Mnm
 
 
 data Kopec = Kopec Mnm Moustrov
-   deriving (Eq)
+   deriving (Eq, Show, Read)
 
 
 
@@ -33,3 +33,4 @@ data Vrch = Vrch { vrVrchol :: Kopec, -- vrchol
               vrKlicoveSedlo :: Kopec, -- klíčové sedlo vrcholu
               vrMaterskeVrcholy :: Kopec
             } -- mateřeské vrcholy, mohou být i různých výšek
+      deriving (Show, Read)      

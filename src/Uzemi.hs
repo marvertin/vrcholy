@@ -25,7 +25,7 @@ yy (Mou _ y) = y
 type Sit0 = M.Map Mou    
 
 newtype Moustrov = Moustrov [Mou]
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show, Read)
 
 -- Z nějaké sítě a daného bodu vyvere okolí tohoto bodu (bez něj)
 -- ale jen ty, které jsou dané síti 
