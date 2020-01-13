@@ -27,6 +27,8 @@ dependencies:
 - string-interpolate
 - containers
 - filepath
+- hspec
+- QuickCheck
 
 library:
   source-dirs: src

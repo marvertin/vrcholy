@@ -10,6 +10,7 @@ module Uzemi
     ) where
 
 import qualified Data.Map.Lazy as M 
+import qualified Data.Set as S
 import Data.Maybe
 
 
@@ -88,6 +89,33 @@ rozdelNaOstrovy sit  = ost sit [] []
            Nothing -> ost sit mrest oo -- bod odděluje ostrovy
            Just udaj -> ost (M.delete m sit) (m -:++ mrest) (M.insert m udaj o : orest)
 
+-- fronta se myslí analogie bojová nebo meteorologická, zde frona stejných vzdáleností
+-- v klíčích jso učelní body fronty, v datech je množina bodů přes které lze projít s danou vzdáleností
+type Fronta = M.Map Mou (S.Set Mou) 
 
 nejkratsiSpoj :: [Mou] -> [Mou] -> [Mou] -> Moustrov
-nejkratsiSpoj ostrov1 pobrezi ostrov2 = Moustrov []
+nejkratsiSpoj ostrov1 pobrezi ostrov2 = 
+   let cil = S.fromList ostrov2  
+       pobreziSCilem = cil `S.union` (S.fromList pobrezi) -- pri pruchodu polem nebude zajimave, co je cil a so pobrezi
+
+       nej :: S.Set Mou -> Fronta -> S.Set Mou
+       nej zbyvajici fronta    -- fronta se myslí analogie bojová nebo meteorologická, zde frona stejných vzdáleností
+          | M.null fronta = S.empty -- máme nespojité oblasti, nelze se tam dostat
+          | not $ M.keysSet fronta `S.disjoint` cil = -- pronikli jsme k cíli
+              foldl S.union S.empty . M.elems $ M.restrictKeys fronta cil -- tak co jsem posbíral vracím, ty z cíle ne
+          | otherwise = --   
+                let novaFronta = posunFrontu zbyvajici fronta
+                    celoFronty = M.keysSet novaFronta
+                in nej (zbyvajici S.\\ celoFronty) (novaFronta)
+   in  Moustrov . S.toList $
+         nej pobreziSCilem (M.fromList $ zip ostrov1 (repeat S.empty))
+            S.\\ (S.fromList ostrov1) -- odečteme startovní body, kterése tam propadly
+
+
+-- posuneme se o jeden bod z celou frontou ale jen v ramci zadaného volného pole
+posunFrontu :: S.Set Mou -> Fronta -> Fronta 
+posunFrontu volnePole fronta = M.fromListWith S.union $ 
+          M.toList fronta >>= (\ (mou, set) ->
+            zip (filter (flip S.member volnePole) (okoliMou mou)) (repeat (mou `S.insert` set)) 
+          )
+
