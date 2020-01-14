@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<gpx
+    creator="Vrcholy" version="1.1" 
+    xmlns="http://www.topografix.com/GPX/1/1" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3"
+    xmlns:gpxg="https://www.geoget.cz/GpxExtensions/v2"
+    xmlns:groundspeak="http://www.groundspeak.com/cache/1/0"
+    xsi:schemaLocation="https://www.geoget.cz/GpxExtensions/v2 https://www.geoget.cz/GpxExtensions/v2/geoget.xsd 
+    http://www.groundspeak.com/cache/1/0 http://www.groundspeak.com/cache/1/0/cache.xsd 
+    http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd 
+    http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+ <metadata>
+   <desc>Vrcholovec</desc>
+   <time>2020-01-13T17:52:19.335</time>
+ </metadata>
+
+ <wpt lat="50.984" lon="14.8563">
+  <time>2015-01-01T00:00:00.000</time>
+  <name>VR12345</name>
+  <sym>Geocache</sym>
+  <type>Geocache|Project APE Cache</type>
+  <extensions>
+   <groundspeak:cache>
+      <!-- Zobrazí se v názvu vrcholu, musí to být tady, nestačí desc či něco jiného -->
+      <groundspeak:name>Vrchol 12345 asi Sněžkax</groundspeak:name>
+      <!-- Abny tam nebyl unknown -->
+      <groundspeak:placed_by>-</groundspeak:placed_by>
+      <!-- Default by to byla tradička a to určitě není -->
+      <groundspeak:container>Other</groundspeak:container>
+   </groundspeak:cache>
+
+   <gpxg:GeogetExtension>
+     <gpxg:Tags>
+       <gpxg:Tag Category="prominence">123</gpxg:Tag>
+       <gpxg:Tag Category="height">1602</gpxg:Tag>
+     </gpxg:Tags>
+   </gpxg:GeogetExtension>
+  </extensions>
+ </wpt>
+
+ <wpt lat="49.284" lon="16.3563">
+  <time>2015-01-01T00:00:00.000</time>
+  <name>KS12345</name>
+
+  <!-- Zobrazí se v názvu dodatečného bodu -->
+  <desc>Klíčové sedlo Sněžky</desc>
+  <!-- Zajišťuje, že se přiváže k nadřízenému bodu -->
+  <type>Waypoint|Reference Point</type>
+ </wpt>
+
+ <wpt lat="49.284" lon="16.3563">
+  <time>1899-12-30T00:00:00.000</time>
+  <name>MV12345</name>
+  <desc>Mateřský vrchol</desc>
+  <type>Waypoint|Reference Point</type>
+ </wpt>
+
+
+ <wpt lat="49.284" lon="16.3563">
+  <time>2015-01-01T00:00:00.000</time>
+  <name>VR88993</name>
+  <extensions>
+    <groundspeak:cache>
+      <groundspeak:name>Vrchol 88993 Krajina</groundspeak:name>
+    </groundspeak:cache>
+    <gpxg:GeogetExtension>
+      <gpxg:Tags>
+        <gpxg:Tag Category="prominence">10</gpxg:Tag>
+        <gpxg:Tag Category="height">510</gpxg:Tag>
+      </gpxg:Tags>
+    </gpxg:GeogetExtension>
+   </extensions>
+  </wpt>
+
+     
+</gpx>

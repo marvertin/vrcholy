@@ -54,6 +54,16 @@ executables:
     dependencies:
     - vrcholy
 
+  vrcholy-gpx:
+    main:                MainGpx.hs
+    source-dirs:         vrcholy-gpx
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - vrcholy    
+
 
 tests:
   vrcholy-test:
