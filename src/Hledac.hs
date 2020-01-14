@@ -1,9 +1,7 @@
 module Hledac
     ( 
-    zamapuj,
-    jeKandidat,
-    jeProminentni,
-    odstranDuplicity,
+    zamapuj, -- kvuli ladeni
+    najdiVrcholyZBodu
     ) where
 
 import Lib
@@ -23,9 +21,21 @@ zamapuj = M.fromList . (map (\b -> (fst b, snd b)))
 
 minimalniProminence = 10
 
+najdiVrcholyZBodu :: Mnm -> [Bod] -> [Vrch]
+najdiVrcholyZBodu minimalniPromnence body =
+    let sit = zamapuj body
+        kandidati = filter (jeKandidat sit) body
+        prominentniVrcholy = filter (jeProminentni sit) kandidati
+        kopce = stvorKopce prominentniVrcholy
+    in map (\kopec -> Vrch {vrVrchol = kopec, 
+        vrKlicoveSedlo = Kopec 0 (Moustrov []),
+        vrMaterskeVrcholy = Kopec 0 (Moustrov []) } ) kopce
+  where
+    stvorKopce :: [Bod] -> [Kopec]
+    stvorKopce body = map kopecZeSite ((rozdelNaOstrovy . zamapuj) body)
 
-odstranDuplicity :: [Bod] -> [Bod]           
-odstranDuplicity body = map (vystred . M.assocs) ((rozdelNaOstrovy . zamapuj) body)
+    kopecZeSite :: Sit -> Kopec
+    kopecZeSite sit = Kopec ((snd . M.findMin) sit) ((Moustrov . M.keys) sit)
 
 -- vyrobí bod z prázdného seznamu, který je nějako uprostřed        
 vystred :: [Bod] -> Bod
@@ -56,7 +66,3 @@ okoli :: Sit -> Mou -> [Bod]
 okoli sit bod = 
     map (dej sit) (okoliMou bod)        
       
-
-
-
-

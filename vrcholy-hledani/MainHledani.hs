@@ -9,96 +9,64 @@ import Uzemi
 import VrchTypy
 import PripravaVstupu
 
-
+import System.FilePath.Posix
+import Konst
 import System.Directory
 import qualified Data.ByteString as B
 import qualified Data.Map.Lazy as M
 import  Control.Arrow
 
-dirData = "data/"
-dirVysledky = "m:/Dropbox/gc/geokuk/data/"
 
 minimalniProminence = 10
 
 
-writeVysledek :: String -> [Bod] -> IO()
-writeVysledek fn body = do
-    let bodyVr = map (\bod@(mou, mnm) -> Vrch {vrVrchol = Kopec mnm (Moustrov [mou]), 
-       vrKlicoveSedlo = Kopec 0 (Moustrov []),
-       vrMaterskeVrcholy = Kopec 0 (Moustrov []) } ) body
-    writeVysledekV fn bodyVr
-
 writeVysledekV :: String -> [Vrch] -> IO()
-writeVysledekV fn body = do
-    let fullFn =  dirVysledky ++ fn
+writeVysledekV filename body = do
+    let fullFn =  dir3vrcholy ++ filename
 --    toto čerpá strašně moc ramky    
 --    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
     writeFile fullFn (bodyXml body)
 
 main :: IO ()
-main = main3
+-- main = potopaSvetaZTransponovanychSrtm
+-- main = potopaSvetaPrimoZeSrtmDlazdic
+main = potopaSvetaZTransponovanychSrtm
 
-main3 :: IO ()
-main3 = do
-    hladiny <- loadAll "m:/vrcholy-data/temp-vrcholy-srtm"
+potopaSvetaZTransponovanychSrtm :: IO ()
+potopaSvetaZTransponovanychSrtm = do
+    putStrLn $ "Potopa sveta primo z transponovanych srtm"
+    hladiny <- loadAll dir2srtm
     let vrcholy = potopaSveta minimalniProminence hladiny
     --putStrLn $ unlines $ map show vrcholy
-    writeVysledekV "vrcholy-prominence2.gpx" vrcholy
-    return ()
+    createDirectoryIfMissing True dir3vrcholy
+    writeFile (dir3vrcholy </> "vrcholy.vrch") $ unlines $ map show vrcholy
+    putStrLn "KONEC"
 
-main2 :: IO ()
-main2 = do
-    putStrLn $ "Potopa sveta z bodu"
-    soubory <- listDirectory "data"
-    -- print $ map fileNameToCoord soubory
+hledaniVrcholuAZapisVysledku :: String -> (Mnm -> [Bod] -> [Vrch])  -> IO ()
+hledaniVrcholuAZapisVysledku vystupniSoubor hledaciFce = do
+    soubory <- listDirectory dir1srtm
     putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
 
-    obsahy <- mapM B.readFile $ map (dirData ++ ) soubory
+    obsahy <- mapM B.readFile $ map ( dir1srtm </> ) soubory
     let souradky = map fileNameToCoord soubory 
 
     let body = loadSrtms (zip souradky obsahy)
     putStrLn $ "Pocet bodu:        " ++  (show . length) body
-    -- let sit = zamapuj body
-    -- putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
-    let vrcholy = potopaSvetaZBodu minimalniProminence body
-    putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
-    putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
-    
-    writeVysledekV "vrcholy-prominence.gpx" vrcholy
-
-po :: IO () 
-po = do
-    putStrLn $ "Hledani vrcholu"
-    soubory <- listDirectory "data"
-    -- print $ map fileNameToCoord soubory
-    putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
-
-    obsahy <- mapM B.readFile $ map (dirData ++ ) soubory
-    let souradky = map fileNameToCoord soubory 
-
-    let bodyVse = loadSrtms (zip souradky obsahy)
-    let body = bodyVse
-    putStrLn $ "Pocet bodu:        " ++  (show . length) body
-
-    let sit = zamapuj body
-    putStrLn $ "Pocet bodu unique: " ++  (show . M.size) sit
-    let kandidati = filter (jeKandidat sit) body
-    putStrLn $ "Pocet kandidatu:   " ++  (show . length) kandidati
-    let prominentniVrcholy = filter (jeProminentni sit) kandidati
-    putStrLn $ "Pocet prominentu:  "  ++ (show . length) prominentniVrcholy
-    let bezdupl = odstranDuplicity prominentniVrcholy
-    putStrLn $ "Pocet ostrovu:     "  ++ (show . length) bezdupl
-
-    
---    ostrovovani body 1000
-
-    let vysledek = bezdupl
-    -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy.gpx" $ bodyXml kandidati
-    writeVysledek "vrcholy4.gpx" vysledek
-    writeVysledek "vrcholy-duplicity.gpx" prominentniVrcholy
-    writeVysledek "vrcholy-kandidati.gpx" kandidati
-    -- writeVysledek "sitka.gpx" body
+    let vrcholy = hledaciFce minimalniProminence body
+    putStrLn ""
+    --putStrLn $ "Pocet vrcholu:     " ++  (show . length) vrcholy
+    createDirectoryIfMissing True dir3vrcholy
+    writeFile (dir3vrcholy </> vystupniSoubor) $ unlines $ map show vrcholy
+    -- writeVysledekV "vrcholy.gpx" vrcholy
     putStrLn "KONEC"
-    -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy2.gpx" $ bodyXml body2
-    -- writeFile "m:/Dropbox/gc/geokuk/data/vrcholy.gpx" $ bodyXml (take 10000 kandidati)
+
+potopaSvetaPrimoZeSrtmDlazdic :: IO ()
+potopaSvetaPrimoZeSrtmDlazdic = do
+    putStrLn $ "Potopa sveta primo z bodu"
+    hledaniVrcholuAZapisVysledku "vrcholy-prima-potopa.vrch" potopaSvetaZBodu
+
+primeHledaniVrcholuZeSrtmDlazdic :: IO () 
+primeHledaniVrcholuZeSrtmDlazdic = do
+    putStrLn $ "Prime hledani vrcholu ze srtm dlazdic."
+    hledaniVrcholuAZapisVysledku "vrcholy-primo.vrch" najdiVrcholyZBodu
 
