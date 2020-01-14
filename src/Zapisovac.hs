@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Zapisovac
     (   bodyXml
@@ -6,10 +7,20 @@ module Zapisovac
  
 import Lib
 import Uzemi
+import Control.Arrow
 import VrchTypy(Vrch(..), Kopec(..))
 import Data.String.Interpolate ( i )
 
--- Kvocient převodu na GPS souřadnice
+hcGps = (49.2839519 :: Double, 16.3563408 :: Double)
+
+data GpsKopec = GpsKopec (Double, Double) Int
+  deriving (Show)
+
+-- vzdálenost, prominence, vrchol, klíčové sedlo mateřský vrchol
+data GpsVrch = GpsVrch Int GpsKopec GpsKopec GpsKopec 
+  deriving (Show)
+
+  -- Kvocient převodu na GPS souřadnice
 kvoc = 1.0 / 1200 :: Double;
 
 hlavicka = [i|<?xml version="1.0" encoding="utf-8" standalone="no"?>
@@ -27,28 +38,53 @@ paticka = [i|
 </gpx>
 |]
 
-vystred  :: [Mou] -> (Mou -> Int) -> Double
-vystred mous fn = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)
+vystred  :: (Mou -> Int) -> [Mou]  -> Double
+vystred _ [] = -1
+vystred fn mous = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)
 
-bodXml :: Vrch -> String
-bodXml  Vrch { vrVrchol = Kopec  elevation (Moustrov mous), vrKlicoveSedlo = Kopec mnmSedlo _ } = 
+toGps :: Kopec -> GpsKopec
+toGps (Kopec mnm (Moustrov mous)) = GpsKopec (vystred yy &&& vystred xx $ mous) mnm
 
---bodXml ((x,y), elevation) = 
- let latitude = vystred mous yy
-     longitude =  vystred mous xx
-     Mou x y = vystredMou mous
-     desc = show elevation ++ " (" ++ show (elevation - mnmSedlo)  ++ ")"
-     name = "VR_" ++ show x ++ "_" ++ show y
+prevod :: Vrch -> GpsVrch
+prevod (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch _), 
+              vrKlicoveSedlo = vrKlicoveSedlo@(Kopec mnmSedlo _),
+              vrMaterskeVrcholy } ) =
+                let vrcholGps@(GpsKopec sou _) = toGps vrVrchol
+                in  GpsVrch  (mnmVrch - mnmSedlo) vrcholGps (toGps vrKlicoveSedlo) (toGps vrMaterskeVrcholy)
+
+                -- (round (distance2 hcGps sou))
+
+
+bodXml :: (Int, (Int, GpsVrch)) -> String
+bodXml (poradi, (vzdalenost, vrch)) = 
+ let (GpsVrch prominence (GpsKopec (vrlat, vrlon) vrele)  _ _ ) =  vrch 
+     desc = show vrele
+     name = "VR_" ++ show vzdalenost ++ "_" ++ show poradi
  in [i|
-<wpt lat="#{latitude}" lon="#{longitude}">
+<wpt lat="#{vrlat}" lon="#{vrlon}">
   <name>#{name}</name>
   <desc>#{desc}</desc>
   <sym>SymVrchol</sym>
   <type>TypeVrchol</type>
-  <elevation>#{elevation}</elevation>
+  <elevation>#{vrele}</elevation>
 </wpt>
 |]
 
+
 -- 49.2839519N, 16.3563408E
 bodyXml :: [Vrch] -> String
-bodyXml body = hlavicka ++ (concat (map bodXml body)) ++ paticka
+bodyXml vrchy = 
+    let vrchyJakoXmlStr :: [String]
+        vrchyJakoXmlStr =
+         map bodXml 
+          (zip [1..]
+               (map (\ gpp@(GpsVrch _ (GpsKopec sou _) _ _) -> (round (distance2 hcGps sou), gpp))
+                 . map prevod $ vrchy))
+    in hlavicka ++ (concat vrchyJakoXmlStr) ++ paticka           
+
+
+distance2 :: Floating a => (a, a) -> (a, a) -> a
+distance2 (lat1 , lon1) (lat2 , lon2) = sqrt (lat'*lat' + lon'*lon')
+    where lat' = (lat1 - lat2) * 60 * 1852
+          lon' = (lon1 - lon2) * 60 * 1852 * (lat1 / 180 * pi)
+        
