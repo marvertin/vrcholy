@@ -1,4 +1,4 @@
-module MainGpx where
+module Main where
 
 import Lib
 import Nacitac

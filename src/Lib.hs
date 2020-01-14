@@ -1,6 +1,6 @@
 module Lib
     (
-    grupuj, rozbal2, fst3, snd3, thr3, kazdyPrvekAZbytky
+    grupuj, rozbal2, fst3, snd3, thr3, kazdyPrvekAZbytky, rostouci
     ) where
 
 import qualified Data.Map.Lazy as M
@@ -31,3 +31,9 @@ kazdyPrvekAZbytky sez = kaz [] sez
     kaz :: [a] -> [a] -> [[a]]
     kaz _ [] = []
     kaz s1 (x : s2) =  (x : s1 ++ s2) :  kaz (s1 ++ [x])  s2 
+
+-- Zajistí, že řada čísel bude ostře rostoucí  1,2,2,13,40,40,55 -> 1,2,3,13,40,41,55
+rostouci :: (Enum a, Ord a) => [a] -> [a]
+rostouci [] = []
+rostouci [a] = [a]
+rostouci (a : b : rest) = (a : rostouci (max b (succ a) : rest))

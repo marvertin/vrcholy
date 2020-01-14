@@ -18,12 +18,37 @@ main = hspec $ do
     it "throws an exception if used with an empty list" $ do
       evaluate (head []) `shouldThrow` anyException
 
-  describe "Lib fst3 snd3 thr3" $ do
-    it "fst3 returns first element of Tuple3" $ do
-      fst3 (44, 58, 63) `shouldBe` (44 :: Int)
+  describe "Lib" $ do
+    describe "fst3 snd3 thr3" $ do
+      it "fst3 returns first element of Tuple3" $ do
+        fst3 (44, 58, 63) `shouldBe` (44 :: Int)
 
-    it "returns the second element of an *arbitrary* Tuple3" $
-      property $ \x  -> fst3 (x, 58, 50) == (x :: Int)
+      it "returns the second element of an *arbitrary* Tuple3" $
+        property $ \x  -> fst3 (x, 58, 50) == (x :: Int)
+
+    describe "rostouci" $ do
+--      it "empty is empty" $ do
+--          rostouci [] `shouldBe` [] :: [Int]
+
+      it "single is single" $ do
+          rostouci [42] `shouldBe` [42]
+
+      it "two same" $ do
+          rostouci [16,16] `shouldBe` [16,17]
+  
+      it "was incraseing" $ do
+          rostouci [6,9,22] `shouldBe` [6,9,22]
+
+      it "one equals" $ do
+          rostouci [6,9,9,22] `shouldBe` [6,9,10,22]
+
+      it "more equals" $ do
+          rostouci [3,3,6,9,9,9,9,22,25,25,25,26,30] `shouldBe` [3,4,6,9,10,11,12,22,25,26,27,28,30]
+
+      it "cik caks" $ do
+          rostouci [3,2,17,9,9,4,29,7,45,45,60,4] `shouldBe` [3,4,17,18,19,20,29,30,45,46,60,61]
+  
+        
 
   describe "Uzemi" $ do
     describe "Uzemi.addMou" $ do
