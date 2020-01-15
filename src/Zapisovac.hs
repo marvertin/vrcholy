@@ -66,11 +66,11 @@ prevod (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch _),
 
                 -- (round (distance2 hcGps sou))
 
-vzdalenost2identif :: Int -> String
+vzdalenost2identif :: Integer -> String
 vzdalenost2identif vzdalenost = printf "%04dK%03d" (vzdalenost `div` 1000) (vzdalenost `mod` 1000)
 
 
-bodXml :: ((Int, Int), GpsVrch) -> String
+bodXml :: ((Int, Integer), GpsVrch) -> String
 bodXml ((poradi, vzdalenost), vrch) = 
  let (GpsVrch prominence (GpsKopec (vrlat, vrlon) vrele) 
                          (GpsKopec (kslat, kslon) ksele) 
@@ -87,7 +87,6 @@ bodXml ((poradi, vzdalenost), vrch) =
 <type>Geocache|Project APE Cache</type>
 <extensions>
  <groundspeak:cache>
-    <!-- Zobrazí se v názvu vrcholu, musí to být tady, nestačí desc či něco jiného -->
     <groundspeak:name>#{nazev}</groundspeak:name>
     <groundspeak:placed_by>-</groundspeak:placed_by>
     <groundspeak:container>Other</groundspeak:container>
@@ -108,32 +107,48 @@ bodXml ((poradi, vzdalenost), vrch) =
 <time>#{cas}</time>
 <name>KSCH#{identif}</name>
 
-<!-- Zobrazí se v názvu dodatečného bodu -->
-<desc>Klíčové sedlo k #{nazev}</desc>
-<!-- Zajišťuje, že se přiváže k nadřízenému bodu -->
+<desc>Klíčové sedlo #{ksele} m.n.m</desc>
 <type>Waypoint|Reference Point</type>
+<extensions>
+ <gpxg:GeogetExtension>
+   <gpxg:Tags>
+     <gpxg:Tag Category="elevation2">#{ksele}</gpxg:Tag>
+   </gpxg:Tags>
+ </gpxg:GeogetExtension>
+</extensions>
 </wpt>
 
 <wpt lat="#{mvlat}" lon="#{mvlon}">
 <time>#{cas}</time>
 <name>MVCH#{identif}</name>
-<desc>Mateřský vrchol k #{nazev}</desc>
+<desc>Mateřský vrchol #{mvele} m.n.m</desc>
 <type>Waypoint|Reference Point</type>
+<extensions>
+ <gpxg:GeogetExtension>
+   <gpxg:Tags>
+     <gpxg:Tag Category="elevation2">#{mvele}</gpxg:Tag>
+   </gpxg:Tags>
+ </gpxg:GeogetExtension>
+</extensions>
 </wpt>
 |]
 
 
 -- 49.2839519N, 16.3563408E
 bodyXml :: [Vrch] -> String
-bodyXml vrchy = 
+bodyXml vrchyp = 
                 let 
+                    sezSeVzdalenosti :: [(Integer, GpsVrch)]
                     sezSeVzdalenosti = map (\ gpp@(GpsVrch _ (GpsKopec sou _) _ _) -> (round (distance2 hcGps sou), gpp)) 
-                      . map prevod $ vrchy
-                    sezSortedDleVysek = reverse $ sortBy (compare `on` dejVysku) sezSeVzdalenosti
+                      . map prevod $ vrchyp
+                    
+                    sezSortedDleVysek  :: [(Integer, GpsVrch)] 
+                    sezSortedDleVysek =  sezSeVzdalenosti -- reverse $ sortBy (compare `on` dejVysku) sezSeVzdalenosti
                     (vzdalenosti, vrchy) = unzip sezSortedDleVysek
                     sez2 = zip (zip [1..] vzdalenosti) vrchy -- řazení: výšky, obsahuje vzdálenost i pořadí dle výšek
                     sez3 = sortBy (compare `on` (snd.fst)) sez2 -- řazení: vzdálenosti
 
+                    sez :: [((Int, Integer), GpsVrch)] 
                     sez = let -- rozbalit a zabalit, aby se udelali vzdalenosti unikatni
                             (poradiAVzdalenosti2, vrchy2) = unzip sez3
                             (poradi2, vzdalenosti2) = unzip poradiAVzdalenosti2
@@ -142,7 +157,7 @@ bodyXml vrchy =
                     vrchyJakoXmlStr :: [String]
                     vrchyJakoXmlStr = map bodXml sez
                           
-                in hlavicka ++ (concat (vrchyJakoXmlStr) ++ paticka           
+                in hlavicka ++ (concat (vrchyJakoXmlStr)) ++ paticka           
         where dejVysku (_, (GpsVrch _ (GpsKopec _ mnm) _ _  )) = mnm
 
 distance2 :: Floating a => (a, a) -> (a, a) -> a

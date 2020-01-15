@@ -16,7 +16,7 @@ import qualified Data.ByteString as B
 import qualified Data.Map.Lazy as M
 import  Control.Arrow
 import  Control.Monad
-
+import  GHC.IO.Encoding
 
 
 writeVysledekV :: String -> [Vrch] -> IO()
@@ -28,6 +28,7 @@ writeVysledekV filename body = do
 
 main :: IO ()
 main = do
+    setLocaleEncoding utf8
     soubory <- listDirectory dir3vrcholy
     putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
     forM_ soubory $ \fileName -> do
