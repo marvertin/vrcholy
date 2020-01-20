@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Zapisovac
-    (   bodyXml
+    (   bodyXml, mousToId, ivystr, mouToId, ee
     ) where
  
 import Lib
@@ -19,8 +19,8 @@ hcGps = (49.2839519 :: Double, 16.3563408 :: Double)
 data GpsKopec = GpsKopec (Double, Double) Int
   deriving (Show)
 
--- vzdálenost, prominence, vrchol, klíčové sedlo mateřský vrchol
-data GpsVrch = GpsVrch Int GpsKopec GpsKopec GpsKopec 
+-- identifikátor, prominence, vrchol, klíčové sedlo mateřský vrchol
+data GpsVrch = GpsVrch String Int GpsKopec GpsKopec GpsKopec 
   deriving (Show)
 
   -- Kvocient převodu na GPS souřadnice
@@ -50,6 +50,23 @@ paticka = [i|
 </gpx>
 |]
 
+-- rozsahy jsou: x: <-180 * 1200 : 180 * 1200>
+--               y: <-80 * 1200 : 80 * 1200>
+mouToId :: Mou -> String
+mouToId (Mou x y) =
+  let  x' = fromIntegral $ (x + ((360 + 15) * 1200)) `mod` (360 * 1200)
+       y' = fromIntegral $ (y + (180 * 1200)) `mod` (180 * 1200)
+  in base34 $ x' * (180 * 1200) + y' + 1*34*34*34*34*34*34
+
+ee x y = mouToId $ Mou (x * 1200) (y * 1200)
+
+mousToId :: [Mou] -> String
+mousToId mous = mouToId $ Mou (ivystr xx mous) (ivystr yy mous) 
+
+ivystr :: (Mou -> Int) -> [Mou]  -> Int
+ivystr _ [] = -1
+ivystr fn mous = (sum $ map fn mous) `div` length mous
+  
 vystred  :: (Mou -> Int) -> [Mou]  -> Double
 vystred _ [] = -1
 vystred fn mous = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)
@@ -58,13 +75,11 @@ toGps :: Kopec -> GpsKopec
 toGps (Kopec mnm (Moustrov mous)) = GpsKopec (vystred yy &&& vystred xx $ mous) mnm
 
 prevod :: Vrch -> GpsVrch
-prevod (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch _), 
+prevod (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch (Moustrov mous)), 
               vrKlicoveSedlo = vrKlicoveSedlo@(Kopec mnmSedlo _),
               vrMaterskeVrcholy } ) =
-                let vrcholGps@(GpsKopec sou _) = toGps vrVrchol
-                in  GpsVrch  (mnmVrch - mnmSedlo) vrcholGps (toGps vrKlicoveSedlo) (toGps vrMaterskeVrcholy)
-
-                -- (round (distance2 hcGps sou))
+                let vrcholGps = toGps vrVrchol
+                in  GpsVrch (mousToId mous) (mnmVrch - mnmSedlo) vrcholGps (toGps vrKlicoveSedlo) (toGps vrMaterskeVrcholy)
 
 vzdalenost2identif :: Integer -> String
 vzdalenost2identif vzdalenost = printf "%04dK%03d" (vzdalenost `div` 1000) (vzdalenost `mod` 1000)
@@ -72,17 +87,16 @@ vzdalenost2identif vzdalenost = printf "%04dK%03d" (vzdalenost `div` 1000) (vzda
 
 bodXml :: ((Int, Integer), GpsVrch) -> String
 bodXml ((poradi, vzdalenost), vrch) = 
- let (GpsVrch prominence (GpsKopec (vrlat, vrlon) vrele) 
+ let (GpsVrch identif prominence (GpsKopec (vrlat, vrlon) vrele) 
                          (GpsKopec (kslat, kslon) ksele) 
                          (GpsKopec (mvlat, mvlon) mvele) 
                                ) =  vrch 
      nazev = show vrele
-     identif = vzdalenost2identif vzdalenost
  in [i|
 
 <wpt lat="#{vrlat}" lon="#{vrlon}">
 <time>#{cas}</time>
-<name>VRCH#{identif}</name>
+<name>VRV#{identif}</name>
 <sym>Geocache</sym>
 <type>Geocache|Project APE Cache</type>
 <extensions>
@@ -97,7 +111,9 @@ bodXml ((poradi, vzdalenost), vrch) =
      <gpxg:Tag Category="poradi">#{poradi}</gpxg:Tag>
      <gpxg:Tag Category="vzdalenost">#{vzdalenost}</gpxg:Tag>
      <gpxg:Tag Category="prominence">#{prominence}</gpxg:Tag>
-     <gpxg:Tag Category="elevation2">#{vrele}</gpxg:Tag>
+     <gpxg:Tag Category="elevationVr">#{vrele}</gpxg:Tag>
+     <gpxg:Tag Category="elevationKs">#{ksele}</gpxg:Tag>
+     <gpxg:Tag Category="elevationMv">#{mvele}</gpxg:Tag>
    </gpxg:Tags>
  </gpxg:GeogetExtension>
 </extensions>
@@ -105,7 +121,7 @@ bodXml ((poradi, vzdalenost), vrch) =
 
 <wpt lat="#{kslat}" lon="#{kslon}">
 <time>#{cas}</time>
-<name>KSCH#{identif}</name>
+<name>KSV#{identif}</name>
 
 <desc>Klíčové sedlo #{ksele} m.n.m</desc>
 <type>Waypoint|Reference Point</type>
@@ -120,7 +136,7 @@ bodXml ((poradi, vzdalenost), vrch) =
 
 <wpt lat="#{mvlat}" lon="#{mvlon}">
 <time>#{cas}</time>
-<name>MVCH#{identif}</name>
+<name>MVV#{identif}</name>
 <desc>Mateřský vrchol #{mvele} m.n.m</desc>
 <type>Waypoint|Reference Point</type>
 <extensions>
@@ -139,7 +155,7 @@ bodyXml :: [Vrch] -> String
 bodyXml vrchyp = 
                 let 
                     sezSeVzdalenosti :: [(Integer, GpsVrch)]
-                    sezSeVzdalenosti = map (\ gpp@(GpsVrch _ (GpsKopec sou _) _ _) -> (round (distance2 hcGps sou), gpp)) 
+                    sezSeVzdalenosti = map (\ gpp@(GpsVrch _ _ (GpsKopec sou _) _ _) -> (round (distance2 hcGps sou), gpp)) 
                       . map prevod $ vrchyp
                     
                     sezSortedDleVysek  :: [(Integer, GpsVrch)] 
@@ -158,7 +174,7 @@ bodyXml vrchyp =
                     vrchyJakoXmlStr = map bodXml sez
                           
                 in hlavicka ++ (concat (vrchyJakoXmlStr)) ++ paticka           
-        where dejVysku (_, (GpsVrch _ (GpsKopec _ mnm) _ _  )) = mnm
+        where dejVysku (_, (GpsVrch _ _ (GpsKopec _ mnm) _ _  )) = mnm
 
 distance2 :: Floating a => (a, a) -> (a, a) -> a
 distance2 (lat1 , lon1) (lat2 , lon2) = sqrt (lat'*lat' + lon'*lon')
