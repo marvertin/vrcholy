@@ -28,7 +28,7 @@ import Control.Lens
 
 writeVysledekV :: String -> [Vrch] -> IO()
 writeVysledekV filename body = do
-    let fullFn =  dir4gpx </> filename
+    let fullFn =  dir5gpx </> filename
 --    toto čerpá strašně moc ramky    
 --    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
     writeFile fullFn (bodyXml body)
@@ -43,7 +43,7 @@ main = do
         text <- readFile (dir3vrcholy </> fileName) 
         let vrchy = map read (lines text) :: [Vrch]
         putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
-        createDirectoryIfMissing True dir4gpx
+        createDirectoryIfMissing True dir5gpx
         writeVysledekV (fileName ++ ".gpx") vrchy
     
 

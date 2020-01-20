@@ -70,6 +70,15 @@ executables:
     dependencies:
     - vrcholy    
 
+  vrcholy-geonames:
+    main:                MainGeonames.hs
+    source-dirs:         vrcholy-geonames
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - vrcholy    
 
 tests:
   vrcholy-test:
