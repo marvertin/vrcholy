@@ -29,6 +29,12 @@ dependencies:
 - filepath
 - hspec
 - QuickCheck
+- wreq
+- lens
+- lens-aeson
+- aeson
+- text
+- utf8-string
 
 library:
   source-dirs: src
