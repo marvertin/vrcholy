@@ -29,6 +29,7 @@ import GHC.IO.Encoding
 import Network.Wreq
 import Control.Lens
 import Data.Text.Encoding
+import Data.Maybe
 
 
 -- import qualified Data.ByteString.Lazy.Internal as BI
@@ -41,7 +42,7 @@ main = do
     forM_ soubory $ \fileName -> do
         putStrLn $ "Hledani nazvu pres geonames: " ++  (dir3vrcholy </> fileName) 
         text <- readFile (dir3vrcholy </> fileName) 
-        let vrchy = take 5 $ map read (lines text) :: [Vrch]
+        let vrchy = map read (lines text) :: [Vrch]
         putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
         createDirectoryIfMissing True dir4geonames
         let file4geonames = dir4geonames </> "geonames.txt"
@@ -55,25 +56,46 @@ nactiGeonamovance fileName = do
     txt <- readFile fileName
     return $ map (vyberIdentif . ctiRadek) (lines txt)   
    where 
-       ctiRadek :: String -> (Int, String, String, String, Vrch) 
+       ctiRadek :: String -> (Int, String, String, String, String, Vrch) 
        ctiRadek = read 
-       vyberIdentif (_, identif, _, _, _) = identif
+       vyberIdentif (_, identif, _, _, _, _) = identif
 
 gpsKopec2url :: GpsKopec -> String
 gpsKopec2url (GpsKopec (lat, lng) _) = 
      "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat="  ++ show lat ++ "&lng=" ++ show lng
 
+gpsKopec2mapyUrl :: GpsKopec -> String
+gpsKopec2mapyUrl (GpsKopec (lat, lng) _) = 
+    "https://mapy.cz/turisticka?z=16&source=coor"  
+    ++ "&x=" ++ show lng ++ "&y=" ++ show lat ++ "&id=" ++ show lng ++ "%2C" ++ show lat
+
+
+     
 nactiGeoname :: FilePath -> S.Set String -> Vrch -> IO()
 nactiGeoname file4geonames uzDriveNactene vrch@(Vrch {vrVrchol = kopec}) = do
     let gpsKopec@(GpsKopec _ mnm) = toGps kopec
     let identif = toIdentif kopec
     unless (identif `S.member` uzDriveNactene) $ do
         let url = gpsKopec2url gpsKopec
+        body <- provedUspesnyDotaz url
+        print $  (mnm, identif, body)
+        threadDelay 3000000
+        appendFile file4geonames $ show (mnm, identif, url, gpsKopec2mapyUrl gpsKopec, body, vrch) ++ "\n"
+   where  
+     provedUspesnyDotaz :: String -> IO B.ByteString
+     provedUspesnyDotaz url = do
         r <- get url
         let body = r ^. responseBody 
-        print $  (mnm, identif, body)
-        threadDelay 4000000
-        appendFile file4geonames $ show (mnm, identif, url, body, vrch) ++ "\n"
+        let bodyGeonames = r ^? responseBody . key "geonames"
+        let statuskod = r ^. responseStatus . statusCode
+        let opakovat = statuskod /= 200 || isNothing bodyGeonames
+        if opakovat then do
+           print $  "Opakujeme: " ++ show body
+           threadDelay 90000000
+           provedUspesnyDotaz url
+          else 
+           return body   
+
  
 migrNacti :: FilePath -> IO (M.Map String String)
 migrNacti fileName = do
@@ -112,5 +134,5 @@ migrNactiGeoname file4geonames uzDriveNamovane vrch@(Vrch {vrVrchol = kopec}) = 
         r <- get url
         let (Just body) =  identif `M.lookup` uzDriveNamovane
         print $  (mnm, identif, body)
-        appendFile file4geonames $ show (mnm, identif, url, body, vrch) ++ "\n"
+        appendFile file4geonames $ show (mnm, identif, url, gpsKopec2mapyUrl gpsKopec, body, vrch) ++ "\n"
       
