@@ -11,8 +11,9 @@ import Uzemi
 import VrchTypy
 import PripravaVstupu
 import Konst
+import GeonamesParser
 
-import Data.Aeson.Lens (key, nth, _String)
+import Data.Aeson.Lens
 --import Data.Aeson.Types (unpack)
 import qualified Data.Text as T
 import System.FilePath.Posix
@@ -72,3 +73,4 @@ p = do
     print tono3
 
     
+
