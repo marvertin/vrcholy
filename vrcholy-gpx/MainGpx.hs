@@ -12,6 +12,7 @@ import VrchTypy
 import PripravaVstupu
 import Konst
 import GeonamesParser
+import JsonParser
 
 import Data.Aeson.Lens
 --import Data.Aeson.Types (unpack)
