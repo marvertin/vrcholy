@@ -25,7 +25,7 @@ writeVysledekV filename body = do
     let fullFn =  dir3vrcholy ++ filename
 --    toto čerpá strašně moc ramky    
 --    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
-    writeFile fullFn (bodyXml body)
+    writeFile fullFn (bodyXml (const Nothing) body)
 
 main :: IO ()
 -- main = potopaSvetaZTransponovanychSrtm

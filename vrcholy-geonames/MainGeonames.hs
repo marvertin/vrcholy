@@ -12,6 +12,7 @@ import VrchTypy
 import PripravaVstupu
 import Konst
 import Gps
+import GeonamesTypy
 
 import Control.Concurrent
 import qualified Data.Set as S
@@ -30,14 +31,6 @@ import Network.Wreq
 import Control.Lens
 import Data.Text.Encoding
 import Data.Maybe
-
--- Kopce typ může být vrchol, klíčové sedlo nebo mateřský vrchol
-data Kotyp = Vr | Ks | Mv
- deriving (Show, Read)
--- záznam načtených geodat 
---  typ - mnm - identif - url geonames - url mapycz - data jako json
-data Georec = Georec Kotyp Int String String String B.ByteString
- deriving (Show, Read)
 
 -- import qualified Data.ByteString.Lazy.Internal as BI
 

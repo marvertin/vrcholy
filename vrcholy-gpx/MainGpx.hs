@@ -13,14 +13,15 @@ import PripravaVstupu
 import Konst
 import GeonamesParser
 import JsonParser
+import GeonamesTypy
 
 import Data.Aeson.Lens
 --import Data.Aeson.Types (unpack)
 import qualified Data.Text as T
 import System.FilePath.Posix
 import System.Directory
-import qualified Data.ByteString as B
-import qualified Data.ByteString.UTF8 as B8
+import qualified Data.ByteString.Lazy as B
+--import qualified Data.ByteString.UTF8 as B8
 import qualified Data.Map.Lazy as M
 import Control.Arrow
 import Control.Monad
@@ -28,16 +29,17 @@ import GHC.IO.Encoding
 import Network.Wreq
 import Control.Lens
 
-writeVysledekV :: String -> [Vrch] -> IO()
-writeVysledekV filename body = do
+writeVysledekV :: String -> (String -> Maybe String) -> [Vrch] -> IO()
+writeVysledekV  filename fceNazev body = do
     let fullFn =  dir5gpx </> filename
 --    toto čerpá strašně moc ramky    
 --    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
-    writeFile fullFn (bodyXml body)
+    writeFile fullFn (bodyXml fceNazev body)
 
 main :: IO ()
 main = do
     setLocaleEncoding utf8
+    fceNazev <- identif2nazev file4geonames dejNazev
     soubory <- listDirectory dir3vrcholy
     putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
     forM_ soubory $ \fileName -> do
@@ -46,8 +48,27 @@ main = do
         let vrchy = map read (lines text) :: [Vrch]
         putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
         createDirectoryIfMissing True dir5gpx
-        writeVysledekV (fileName ++ ".gpx") vrchy
+        writeVysledekV (fileName ++ ".gpx") fceNazev vrchy
     
+qw = do
+     recs <- fmap (take 4) $ readGeodecFile file4geonames
+     
+     -- dejNazev jsontext
+     forM_ recs $ \rec -> do 
+        let (Georec _ _ _ _ _ jsontext) = rec
+        print $  dejNazev jsontext
+
+-- vezme funkci, která z json dat vybere jméno
+-- vrátí funkci, která z identifikátoru udělá jméno prohnáním přes načtenou mapu
+identif2nazev :: FilePath -> (B.ByteString -> Maybe String) -> IO (String -> Maybe String)
+identif2nazev fileName fce = do
+    putStrLn $ "Ctu geodec data: "  ++ fileName
+    mapa <- readGeodecFileAsMap fileName
+    putStrLn $ "Precteno "  ++ (show.M.size) mapa ++ " geonames" 
+    return $ \identif ->
+        mapa M.!? identif >>= fce
+
+
 
 p :: IO ()
 p = do

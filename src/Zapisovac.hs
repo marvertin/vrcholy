@@ -14,6 +14,7 @@ import Data.String.Interpolate ( i )
 import Text.Printf (printf)
 import Data.List
 import Data.Function
+import Data.Maybe
 
 
 cas = "2015-01-01T00:00:00.000"
@@ -48,17 +49,14 @@ prevod (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch (Moustrov mous)),
                 let vrcholGps = toGps vrVrchol
                 in  GpsVrch (mousToId mous) (mnmVrch - mnmSedlo) vrcholGps (toGps vrKlicoveSedlo) (toGps vrMaterskeVrcholy)
 
-vzdalenost2identif :: Integer -> String
-vzdalenost2identif vzdalenost = printf "%04dK%03d" (vzdalenost `div` 1000) (vzdalenost `mod` 1000)
 
-
-bodXml :: ((Int, Integer), GpsVrch) -> String
-bodXml ((poradi, vzdalenost), vrch) = 
+bodXml :: (String -> Maybe String) -> ((Int, Integer), GpsVrch) -> String
+bodXml nazevFce ((poradi, vzdalenost), vrch) = 
  let (GpsVrch identif prominence (GpsKopec (vrlat, vrlon) vrele) 
                          (GpsKopec (kslat, kslon) ksele) 
                          (GpsKopec (mvlat, mvlon) mvele) 
                                ) =  vrch 
-     nazev = show vrele
+     nazev = fromMaybe (show vrele) (nazevFce identif)
  in [i|
 
 <wpt lat="#{vrlat}" lon="#{vrlon}">
@@ -118,8 +116,8 @@ bodXml ((poradi, vzdalenost), vrch) =
 
 
 -- 49.2839519N, 16.3563408E
-bodyXml :: [Vrch] -> String
-bodyXml vrchyp = 
+bodyXml :: (String -> Maybe String) -> [Vrch] -> String
+bodyXml nazevFce vrchyp = 
                 let 
                     sezSeVzdalenosti :: [(Integer, GpsVrch)]
                     sezSeVzdalenosti = map (\ gpp@(GpsVrch _ _ (GpsKopec sou _) _ _) -> (round (distance2 hcGps sou), gpp)) 
@@ -138,7 +136,7 @@ bodyXml vrchyp =
                           in zip (zip poradi2 (rostouci vzdalenosti2)) vrchy2 -- opraveny seznam, aby vzdalenosti byly unikatni
 
                     vrchyJakoXmlStr :: [String]
-                    vrchyJakoXmlStr = map bodXml sez
+                    vrchyJakoXmlStr = map (bodXml nazevFce)  sez
                           
                 in hlavicka ++ (concat (vrchyJakoXmlStr)) ++ paticka           
         where dejVysku (_, (GpsVrch _ _ (GpsKopec _ mnm) _ _  )) = mnm
