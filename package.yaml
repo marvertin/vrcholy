@@ -40,17 +40,7 @@ library:
   source-dirs: src
 
 executables:
-  vrcholy:
-    main:                MainHledani.hs
-    source-dirs:         vrcholy-hledani
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - vrcholy
-
-  vrcholy-srtm:
+  vrcholy-1srtm:
     main:                MainSrtm.hs
     source-dirs:         vrcholy-srtm
     ghc-options:
@@ -60,7 +50,27 @@ executables:
     dependencies:
     - vrcholy
 
-  vrcholy-gpx:
+  vrcholy-2potopa:
+    main:                MainHledani.hs
+    source-dirs:         vrcholy-hledani
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - vrcholy
+
+  vrcholy-3geonames:
+    main:                MainGeonames.hs
+    source-dirs:         vrcholy-geonames
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - vrcholy    
+
+  vrcholy-4gpx:
     main:                MainGpx.hs
     source-dirs:         vrcholy-gpx
     ghc-options:
@@ -70,15 +80,6 @@ executables:
     dependencies:
     - vrcholy    
 
-  vrcholy-geonames:
-    main:                MainGeonames.hs
-    source-dirs:         vrcholy-geonames
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - vrcholy    
 
 tests:
   vrcholy-test:

@@ -29,41 +29,27 @@ import GHC.IO.Encoding
 import Network.Wreq
 import Control.Lens
 
-writeVysledekV :: String -> (String -> Maybe String) -> [Vrch] -> IO()
-writeVysledekV  filename fceNazev body = do
-    let fullFn =  dir5gpx </> filename
---    toto čerpá strašně moc ramky    
---    putStrLn $ "Zapis "  ++ (show . length) body ++ " bodu do \"" ++ fullFn ++ "\""
-    writeFile fullFn (bodyXml fceNazev body)
-
 main :: IO ()
-main = do
-    setLocaleEncoding utf8
-    fceNazev <- identif2nazev file4geonames dejNazev
-    soubory <- listDirectory dir3vrcholy
-    putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
-    forM_ soubory $ \fileName -> do
-        putStrLn $ "Prevod do GPX: " ++  (dir3vrcholy </> fileName) 
-        text <- readFile (dir3vrcholy </> fileName) 
-        let vrchy = map read (lines text) :: [Vrch]
-        putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
-        createDirectoryIfMissing True dir5gpx
-        writeVysledekV (fileName ++ ".gpx") fceNazev vrchy
-    
-qw = do
-     recs <- fmap (take 4) $ readGeodecFile file4geonames
-     
-     -- dejNazev jsontext
-     forM_ recs $ \rec -> do 
-        let (Georec _ _ _ _ _ jsontext) = rec
-        print $  dejNazev jsontext
+main = vyrobGpx ggfile2 ggfile3 ggfile4
 
+vyrobGpx  :: FilePath -> FilePath -> FilePath -> IO ()
+vyrobGpx file3Vrcholy file4Geonames file5Gpx = do
+    setLocaleEncoding utf8
+    fceNazev <- identif2nazev file4Geonames dejNazev
+    putStrLn $ "Prevod do GPX: " ++  file3Vrcholy
+    text <- readFile file3Vrcholy
+    let vrchy = map read (lines text) :: [Vrch]
+    putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
+    createDirectoryIfMissing True (takeDirectory file5Gpx)
+    writeFile file5Gpx (bodyXml fceNazev vrchy)
+    
 -- vezme funkci, která z json dat vybere jméno
 -- vrátí funkci, která z identifikátoru udělá jméno prohnáním přes načtenou mapu
 identif2nazev :: FilePath -> (B.ByteString -> Maybe String) -> IO (String -> Maybe String)
 identif2nazev fileName fce = do
     putStrLn $ "Ctu geodec data: "  ++ fileName
-    mapa <- readGeodecFileAsMap fileName
+    souborExistuje <- doesFileExist fileName 
+    mapa <- if souborExistuje then readGeodecFileAsMap fileName else return M.empty
     putStrLn $ "Precteno "  ++ (show.M.size) mapa ++ " geonames" 
     return $ \identif ->
         mapa M.!? identif >>= fce

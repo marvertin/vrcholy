@@ -5,6 +5,6 @@ import Konst
 
 main :: IO ()
 main = do
-    transponujSrtm dir1srtm dir2srtm
+    transponujSrtm ggdir0 ggdir1
 
 

@@ -31,30 +31,29 @@ import Network.Wreq
 import Control.Lens
 import Data.Text.Encoding
 import Data.Maybe
-
+import System.Directory
 -- import qualified Data.ByteString.Lazy.Internal as BI
 
 main :: IO ()
-main = do
+main = dotahujGeoNames ggfile2 ggfile3
+
+dotahujGeoNames :: FilePath -> FilePath -> IO ()
+dotahujGeoNames fileVrcholy fileGeonames = do
     setLocaleEncoding utf8
-    soubory <- listDirectory dir3vrcholy
-    putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
-    forM_ soubory $ \fileName -> do
-        putStrLn $ "Hledani nazvu pres geonames: " ++  (dir3vrcholy </> fileName) 
-        text <- readFile (dir3vrcholy </> fileName) 
-        let vrchy = map read (lines text) :: [Vrch]
-        putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
-        createDirectoryIfMissing True dir4geonames
-        let file4geonames = dir4geonames </> "geonames.txt"
-        appendFile file4geonames "" -- aby případně vznikl
-        uzDriveNactenaId <- fmap S.fromList $ nactiGeonamovance file4geonames
-        putStrLn $ "počet již zpracovaných dříve: " ++ (show . S.size) uzDriveNactenaId
-        let kopce = vrchy >>= \vrch -> [(Vr, vrVrchol vrch) , (Ks, vrKlicoveSedlo vrch)]
---        forM_ vrchy $ \vrch -> do
-            -- nactiGeoname file4geonames uzDriveNactenaId Vr (vrVrchol vrch) 
-        nactiVse file4geonames uzDriveNactenaId kopce  
+    putStrLn $ "Hledani nazvu pres geonames: " ++  fileVrcholy 
+    text <- readFile fileVrcholy
+    let vrchy = map read (lines text) :: [Vrch]
+    putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
+    createDirectoryIfMissing True (takeDirectory fileGeonames)
+    appendFile fileGeonames "" -- aby případně vznikl
+    uzDriveNactenaId <- fmap S.fromList $ nactiGeonamovance fileGeonames
+    putStrLn $ "počet již zpracovaných dříve: " ++ (show . S.size) uzDriveNactenaId
+    let kopce = vrchy >>= \vrch -> [(Vr, vrVrchol vrch) , (Ks, vrKlicoveSedlo vrch) ]
+    nactiVse fileGeonames uzDriveNactenaId kopce  
+    putStrLn "KONEC geonames"
 
 nactiVse :: FilePath -> S.Set String -> [(Kotyp, Kopec)] -> IO ()
+nactiVse  _ _ [] = return ()
 nactiVse  file4geonames uzDriveNactene ((kotyp, kopec) : zbytekKopcu) = do
     identif <- nactiGeoname file4geonames uzDriveNactene kotyp kopec
     nactiVse file4geonames (identif `S.insert` uzDriveNactene) zbytekKopcu
@@ -95,9 +94,6 @@ gpsKopec2mapyUrl :: GpsKopec -> String
 gpsKopec2mapyUrl (GpsKopec (lat, lng) _ _) = 
     "https://mapy.cz/turisticka?z=16&source=coor"  
     ++ "&x=" ++ show lng ++ "&y=" ++ show lat ++ "&id=" ++ show lng ++ "%2C" ++ show lat
-
-           
-           
            
 
 nactiGeonamovance :: FilePath -> IO [String]
@@ -110,58 +106,3 @@ nactiGeonamovance fileName = do
         vyberIdentif (Georec _ _ identif _ _ _) = identif
 
            
-migr2nacti :: FilePath -> IO [Georec]
-migr2nacti fileName = do
-    txt <- readFile fileName
-    return $ map (prevod . ctiRadek) (lines txt)   
-    where 
-        ctiRadek :: String -> (Int, String, String, String, B.ByteString, Vrch) 
-        ctiRadek = read 
-        prevod (mnm, identif, url1, url2, jsons, _) = Georec Vr mnm identif url1 url2 jsons
-
-migr2 :: IO ()
-migr2 = do
-    let vstup = dir4geonames </> "geonames.txt"
-    let vystup = dir4geonames </> "1geonames.txt"
-    grecy <- migr2nacti vstup
-    writeFile vystup . unlines . map show $ grecy
-           
- 
-migrNacti :: FilePath -> IO (M.Map String String)
-migrNacti fileName = do
-    txt <- readFile fileName
-    return $ M.fromList (map ctiRadek (lines txt))
-   where 
-       ctiRadek :: String -> (String, String) 
-       ctiRadek = read 
-       
-       
-migruj :: IO()        
-migruj = do
-    let vstup = dir4geonames </> "0geonames.txt"
-    let vystup = dir4geonames </> "1geonames.txt"
-    setLocaleEncoding utf8
-    soubory <- listDirectory dir3vrcholy
-    putStrLn $ "Pocet souboru:     " ++  (show . length) soubory
-    forM_ soubory $ \fileName -> do
-        putStrLn $ "MIGRACE: " ++  (dir3vrcholy </> fileName) 
-        text <- readFile (dir3vrcholy </> fileName) 
-        let vrchy = map read (lines text) :: [Vrch]
-        putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
-        createDirectoryIfMissing True dir4geonames
-        let file4geonames = dir4geonames </> "1geonames.txt"
-        appendFile file4geonames "" -- aby případně vznikl
-        uzDriveNactenaId <- migrNacti vstup
-        forM_ vrchy $ \vrch -> do
-            migrNactiGeoname file4geonames uzDriveNactenaId vrch
-
-migrNactiGeoname :: FilePath -> M.Map String String -> Vrch -> IO()
-migrNactiGeoname file4geonames uzDriveNamovane vrch@(Vrch {vrVrchol = kopec}) = do
-    let gpsKopec@(GpsKopec _ mnm identif) = kopec2gps kopec
-    when (identif `M.member` uzDriveNamovane) $ do
-        let url = gpsKopec2url gpsKopec
-        r <- get url
-        let (Just body) =  identif `M.lookup` uzDriveNamovane
-        print $  (mnm, identif, body)
-        appendFile file4geonames $ show (mnm, identif, url, gpsKopec2mapyUrl gpsKopec, body, vrch) ++ "\n"
-      
