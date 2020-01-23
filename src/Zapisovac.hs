@@ -42,31 +42,27 @@ paticka = [i|
 |]
 
 
-prevod :: Vrch -> GpsVrch
-prevod (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch (Moustrov mous)), 
-              vrKlicoveSedlo = vrKlicoveSedlo@(Kopec mnmSedlo _),
-              vrMaterskeVrcholy } ) =
-                let vrcholGps = toGps vrVrchol
-                in  GpsVrch (mousToId mous) (mnmVrch - mnmSedlo) vrcholGps (toGps vrKlicoveSedlo) (toGps vrMaterskeVrcholy)
-
 
 bodXml :: (String -> Maybe String) -> ((Int, Integer), GpsVrch) -> String
 bodXml nazevFce ((poradi, vzdalenost), vrch) = 
- let (GpsVrch identif prominence (GpsKopec (vrlat, vrlon) vrele) 
-                         (GpsKopec (kslat, kslon) ksele) 
-                         (GpsKopec (mvlat, mvlon) mvele) 
+ let (GpsVrch prominence (GpsKopec (vrlat, vrlon) vrele vridentif) 
+                         (GpsKopec (kslat, kslon) ksele ksidentif) 
+                         (GpsKopec (mvlat, mvlon) mvele mvidentif) 
                                ) =  vrch 
-     nazev = fromMaybe (show vrele) (nazevFce identif)
+     vrnazev = fromMaybe (show vrele) (nazevFce vridentif)
+     ksnazev = fromMaybe "" . fmap (++ " - ") . nazevFce $ ksidentif
+     mvnazev = fromMaybe "" . fmap (++ " - ") . nazevFce $ mvidentif
+     
  in [i|
 
 <wpt lat="#{vrlat}" lon="#{vrlon}">
 <time>#{cas}</time>
-<name>VRV#{identif}</name>
+<name>VRV#{vridentif}</name>
 <sym>Geocache</sym>
 <type>Geocache|Project APE Cache</type>
 <extensions>
  <groundspeak:cache>
-    <groundspeak:name>#{nazev}</groundspeak:name>
+    <groundspeak:name>#{vrnazev}</groundspeak:name>
     <groundspeak:placed_by>-</groundspeak:placed_by>
     <groundspeak:container>Other</groundspeak:container>
  </groundspeak:cache>
@@ -86,9 +82,9 @@ bodXml nazevFce ((poradi, vzdalenost), vrch) =
 
 <wpt lat="#{kslat}" lon="#{kslon}">
 <time>#{cas}</time>
-<name>KSV#{identif}</name>
+<name>KSV#{vridentif}</name>
 
-<desc>Klíčové sedlo #{ksele} m.n.m</desc>
+<desc>#{ksnazev}Klíčové sedlo #{ksele} m.n.m</desc>
 <type>Waypoint|Reference Point</type>
 <extensions>
  <gpxg:GeogetExtension>
@@ -101,8 +97,8 @@ bodXml nazevFce ((poradi, vzdalenost), vrch) =
 
 <wpt lat="#{mvlat}" lon="#{mvlon}">
 <time>#{cas}</time>
-<name>MVV#{identif}</name>
-<desc>Mateřský vrchol #{mvele} m.n.m</desc>
+<name>MVV#{vridentif}</name>
+<desc>#{mvnazev}Mateřský vrchol #{mvele} m.n.m</desc>
 <type>Waypoint|Reference Point</type>
 <extensions>
  <gpxg:GeogetExtension>
@@ -120,8 +116,8 @@ bodyXml :: (String -> Maybe String) -> [Vrch] -> String
 bodyXml nazevFce vrchyp = 
                 let 
                     sezSeVzdalenosti :: [(Integer, GpsVrch)]
-                    sezSeVzdalenosti = map (\ gpp@(GpsVrch _ _ (GpsKopec sou _) _ _) -> (round (distance2 hcGps sou), gpp)) 
-                      . map prevod $ vrchyp
+                    sezSeVzdalenosti = map (\ gpp@(GpsVrch _ (GpsKopec sou _ _) _ _) -> (round (distance2 hcGps sou), gpp)) 
+                      . map vrch2gps $ vrchyp
                     
                     sezSortedDleVysek  :: [(Integer, GpsVrch)] 
                     sezSortedDleVysek =  sezSeVzdalenosti -- reverse $ sortBy (compare `on` dejVysku) sezSeVzdalenosti
@@ -139,7 +135,7 @@ bodyXml nazevFce vrchyp =
                     vrchyJakoXmlStr = map (bodXml nazevFce)  sez
                           
                 in hlavicka ++ (concat (vrchyJakoXmlStr)) ++ paticka           
-        where dejVysku (_, (GpsVrch _ _ (GpsKopec _ mnm) _ _  )) = mnm
+        where dejVysku (_, (GpsVrch _ (GpsKopec _ mnm _) _ _  )) = mnm
 
 distance2 :: Floating a => (a, a) -> (a, a) -> a
 distance2 (lat1 , lon1) (lat2 , lon2) = sqrt (lat'*lat' + lon'*lon')

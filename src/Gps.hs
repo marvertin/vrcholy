@@ -2,8 +2,11 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Gps
-    (   toGps, toIdentif, mousToId,
-       GpsVrch(..), GpsKopec(..), hcGps
+    (   
+       GpsVrch(..), GpsKopec(..), 
+       hcGps,
+       kopec2gps, 
+       vrch2gps,
     ) where
  
 import Lib
@@ -17,11 +20,13 @@ import Data.Function
 
 hcGps = (49.2839519 :: Double, 16.3563408 :: Double)
 
-data GpsKopec = GpsKopec (Double, Double) Int
+type Identif = String 
+
+data GpsKopec = GpsKopec (Double, Double) Int Identif
   deriving (Show)
 
--- identifikátor, prominence, vrchol, klíčové sedlo mateřský vrchol
-data GpsVrch = GpsVrch String Int GpsKopec GpsKopec GpsKopec 
+--  prominence, vrchol, klíčové sedlo mateřský vrchol
+data GpsVrch = GpsVrch Int GpsKopec GpsKopec GpsKopec 
   deriving (Show)
 
   -- Kvocient převodu na GPS souřadnice
@@ -48,8 +53,12 @@ vystred  :: (Mou -> Int) -> [Mou]  -> Double
 vystred _ [] = -1
 vystred fn mous = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)
 
-toGps :: Kopec -> GpsKopec
-toGps (Kopec mnm (Moustrov mous)) = GpsKopec (vystred yy &&& vystred xx $ mous) mnm
+kopec2gps :: Kopec -> GpsKopec
+kopec2gps (Kopec mnm (Moustrov mous)) = GpsKopec (vystred yy &&& vystred xx $ mous) mnm (mousToId mous)
 
-toIdentif :: Kopec -> String
-toIdentif (Kopec _ (Moustrov mous)) =  mouToId $ Mou (ivystr xx mous) (ivystr yy mous) 
+vrch2gps :: Vrch -> GpsVrch
+vrch2gps (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch _), 
+                 vrKlicoveSedlo = vrKlicoveSedlo@(Kopec mnmSedlo _),
+                 vrMaterskeVrcholy } ) =
+                 GpsVrch (mnmVrch - mnmSedlo) (kopec2gps vrVrchol) (kopec2gps vrKlicoveSedlo) (kopec2gps vrMaterskeVrcholy)
+

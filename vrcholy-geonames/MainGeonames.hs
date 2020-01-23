@@ -62,8 +62,7 @@ nactiVse  file4geonames uzDriveNactene ((kotyp, kopec) : zbytekKopcu) = do
     -- (Vrch {vrVrchol = kopec})
 nactiGeoname :: FilePath -> S.Set String -> Kotyp -> Kopec -> IO (String)
 nactiGeoname file4geonames uzDriveNactene kotyp kopec  = do
-    let gpsKopec@(GpsKopec _ mnm) = toGps kopec
-    let identif = toIdentif kopec
+    let gpsKopec@(GpsKopec _ mnm identif) = kopec2gps kopec
     if identif `S.member` uzDriveNactene then do
         putStrLn $  "Uz nacteno: " ++ show kotyp ++ " " ++ identif
       else do
@@ -89,11 +88,11 @@ nactiGeoname file4geonames uzDriveNactene kotyp kopec  = do
            return body   
 
 gpsKopec2url :: GpsKopec -> String
-gpsKopec2url (GpsKopec (lat, lng) _) = 
+gpsKopec2url (GpsKopec (lat, lng) _ _) = 
     "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat="  ++ show lat ++ "&lng=" ++ show lng
 
 gpsKopec2mapyUrl :: GpsKopec -> String
-gpsKopec2mapyUrl (GpsKopec (lat, lng) _) = 
+gpsKopec2mapyUrl (GpsKopec (lat, lng) _ _) = 
     "https://mapy.cz/turisticka?z=16&source=coor"  
     ++ "&x=" ++ show lng ++ "&y=" ++ show lat ++ "&id=" ++ show lng ++ "%2C" ++ show lat
 
@@ -158,8 +157,7 @@ migruj = do
 
 migrNactiGeoname :: FilePath -> M.Map String String -> Vrch -> IO()
 migrNactiGeoname file4geonames uzDriveNamovane vrch@(Vrch {vrVrchol = kopec}) = do
-    let gpsKopec@(GpsKopec _ mnm) = toGps kopec
-    let identif = toIdentif kopec
+    let gpsKopec@(GpsKopec _ mnm identif) = kopec2gps kopec
     when (identif `M.member` uzDriveNamovane) $ do
         let url = gpsKopec2url gpsKopec
         r <- get url
