@@ -5,7 +5,7 @@ module Konst
 
 import System.FilePath.Posix
 
-dirRoot = "g:/vrch"
+dirRoot = "m:/vrch"
 
 dir1srtm = dirRoot </> "1srtm"     -- Primární SRTM3 data
 dir2srtm = dirRoot </> "2srtm"     -- Transponobvaná SRTM-3 data
