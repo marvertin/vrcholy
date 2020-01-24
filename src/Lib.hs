@@ -9,6 +9,7 @@ import Data.Char (chr, isSpace)
 import System.FilePath.Posix
 import System.Directory
 import Control.Monad
+import Data.Sort
 
 -- Zgrupuje seunam do mapy tak, že aplikue funkce na získání klíčů a hodnot a vrací 
 -- mapu klíčů na seznamy hodnot (takže v hodnotýách budou vždy neprázdné seznamy)             
@@ -47,7 +48,7 @@ rostouci (a : b : rest) = (a : rostouci (max b (succ a) : rest))
 readLinesFromDir :: FilePath -> IO [String]
 readLinesFromDir dirname = do
   files <- listDirectory dirname
-  fmap (filter (not . all isSpace) . concat) . forM files $ \filename -> do
+  fmap (filter (not . all isSpace) . concat) . forM (sort files) $ \filename -> do
     fmap lines . readFile $ dirname </> filename
 
 base34 ::  Integer -> String

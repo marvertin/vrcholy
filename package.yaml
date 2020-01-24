@@ -36,6 +36,7 @@ dependencies:
 - text
 - utf8-string
 - split
+- sort
 
 library:
   source-dirs: src

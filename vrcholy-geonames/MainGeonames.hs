@@ -34,6 +34,7 @@ import Data.Maybe
 import System.Directory
 import Data.List.Split
 import Data.Char
+import Data.Sort
 -- import qualified Data.ByteString.Lazy.Internal as BI
 
 main :: IO ()
@@ -117,3 +118,8 @@ qqq = do
     print $ url2geonamesFileName "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat=-49.157500000000006&lng=19.999166666666667"    
 
 
+rozdel srcDir destDir = do
+    recs <- readGeorecDir srcDir
+    forM_ recs $ ulozGeoname destDir
+
+rozd = rozdel ggdir3 "M:/vrch-CZ/novegeonames"
