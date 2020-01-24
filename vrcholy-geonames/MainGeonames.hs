@@ -105,9 +105,13 @@ gpsKopec2mapyUrl (GpsKopec (lat, lng) _ _) =
 url2geonamesFileName :: String -> String
 url2geonamesFileName url =
     let [lat, lng] = map (takeWhile isDigitOrMinus) . map (drop 4) . reverse . take 2 . reverse . (splitWhen (=='&')) $ url
-    in "geonames-" ++ "N" ++ lat ++ "E" ++ lng ++ ".txt"
+    in "geonames-" ++ nahradMinus 'N' 'S' lat ++ nahradMinus 'E' 'W' lng ++ ".txt"
 
 isDigitOrMinus x = isDigit x || x == '-'
+
+nahradMinus :: Char -> Char -> String -> String
+nahradMinus zp zm ('-' : s)  = (zm : s)
+nahradMinus zp zm s = (zp : s)
 
 qqq = do
     print $ url2geonamesFileName "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat=-49.157500000000006&lng=19.999166666666667"    
