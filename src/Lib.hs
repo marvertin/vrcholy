@@ -1,10 +1,14 @@
 module Lib
     (
-    grupuj, rozbal2, fst3, snd3, thr3, kazdyPrvekAZbytky, rostouci, base34
+    grupuj, rozbal2, fst3, snd3, thr3, kazdyPrvekAZbytky, rostouci, base34,
+    readLinesFromDir
     ) where
 
 import qualified Data.Map.Lazy as M
-import Data.Char (chr)
+import Data.Char (chr, isSpace)
+import System.FilePath.Posix
+import System.Directory
+import Control.Monad
 
 -- Zgrupuje seunam do mapy tak, že aplikue funkce na získání klíčů a hodnot a vrací 
 -- mapu klíčů na seznamy hodnot (takže v hodnotýách budou vždy neprázdné seznamy)             
@@ -39,10 +43,12 @@ rostouci [] = []
 rostouci [a] = [a]
 rostouci (a : b : rest) = (a : rostouci (max b (succ a) : rest))
 
-
-
-
-
+-- vrátí neprázdné řádky ze všech souborů v adresáři
+readLinesFromDir :: FilePath -> IO [String]
+readLinesFromDir dirname = do
+  files <- listDirectory dirname
+  fmap (filter (not . all isSpace) . concat) . forM files $ \filename -> do
+    fmap lines . readFile $ dirname </> filename
 
 base34 ::  Integer -> String
 base34 0 = ""

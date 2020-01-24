@@ -30,26 +30,26 @@ import Network.Wreq
 import Control.Lens
 
 main :: IO ()
-main = vyrobGpx ggfile2 ggfile3 ggfile4
+main = vyrobGpx ggfile2 ggdir3 ggfile4
 
 vyrobGpx  :: FilePath -> FilePath -> FilePath -> IO ()
-vyrobGpx file3Vrcholy file4Geonames file5Gpx = do
+vyrobGpx file2Vrcholy dir3Geonames file4Gpx = do
     setLocaleEncoding utf8
-    fceNazev <- identif2nazev file4Geonames dejNazev
-    putStrLn $ "Prevod do GPX: " ++  file3Vrcholy
-    text <- readFile file3Vrcholy
+    fceNazev <- identif2nazev dir3Geonames dejNazev
+    putStrLn $ "Prevod do GPX: " ++  file2Vrcholy
+    text <- readFile file2Vrcholy
     let vrchy = map read (lines text) :: [Vrch]
     putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
-    createDirectoryIfMissing True (takeDirectory file5Gpx)
-    writeFile file5Gpx (bodyXml fceNazev vrchy)
+    createDirectoryIfMissing True (takeDirectory file4Gpx)
+    writeFile file4Gpx (bodyXml fceNazev vrchy)
     
 -- vezme funkci, která z json dat vybere jméno
 -- vrátí funkci, která z identifikátoru udělá jméno prohnáním přes načtenou mapu
 identif2nazev :: FilePath -> (B.ByteString -> Maybe String) -> IO (String -> Maybe String)
-identif2nazev fileName fce = do
-    putStrLn $ "Ctu geodec data: "  ++ fileName
-    souborExistuje <- doesFileExist fileName 
-    mapa <- if souborExistuje then readGeodecFileAsMap fileName else return M.empty
+identif2nazev dirName fce = do
+    putStrLn $ "Ctu geodec data: "  ++ dirName
+    adresarExistuje <- doesDirectoryExist dirName 
+    mapa <- if adresarExistuje then readGeorecDirAsMap dirName else return M.empty
     putStrLn $ "Precteno "  ++ (show.M.size) mapa ++ " geonames" 
     return $ \identif ->
         mapa M.!? identif >>= fce

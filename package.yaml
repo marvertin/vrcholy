@@ -35,6 +35,7 @@ dependencies:
 - aeson
 - text
 - utf8-string
+- split
 
 library:
   source-dirs: src

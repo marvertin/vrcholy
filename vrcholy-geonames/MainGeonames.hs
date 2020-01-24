@@ -32,35 +32,36 @@ import Control.Lens
 import Data.Text.Encoding
 import Data.Maybe
 import System.Directory
+import Data.List.Split
+import Data.Char
 -- import qualified Data.ByteString.Lazy.Internal as BI
 
 main :: IO ()
-main = dotahujGeoNames ggfile2 ggfile3
+main = dotahujGeoNames ggfile2 ggdir3
 
 dotahujGeoNames :: FilePath -> FilePath -> IO ()
-dotahujGeoNames fileVrcholy fileGeonames = do
+dotahujGeoNames fileVrcholy dirGeonames = do
     setLocaleEncoding utf8
     putStrLn $ "Hledani nazvu pres geonames: " ++  fileVrcholy 
     text <- readFile fileVrcholy
     let vrchy = map read (lines text) :: [Vrch]
     putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
-    createDirectoryIfMissing True (takeDirectory fileGeonames)
-    appendFile fileGeonames "" -- aby případně vznikl
-    uzDriveNactenaId <- fmap S.fromList $ nactiGeonamovance fileGeonames
+    createDirectoryIfMissing True dirGeonames
+
+    uzDriveNactenaId <- readGeorecDirAsIdentifs dirGeonames
     putStrLn $ "počet již zpracovaných dříve: " ++ (show . S.size) uzDriveNactenaId
     let kopce = vrchy >>= \vrch -> [(Vr, vrVrchol vrch) , (Ks, vrKlicoveSedlo vrch) ]
-    nactiVse fileGeonames uzDriveNactenaId kopce  
+    dotahujVse dirGeonames uzDriveNactenaId kopce  
     putStrLn "KONEC geonames"
 
-nactiVse :: FilePath -> S.Set String -> [(Kotyp, Kopec)] -> IO ()
-nactiVse  _ _ [] = return ()
-nactiVse  file4geonames uzDriveNactene ((kotyp, kopec) : zbytekKopcu) = do
-    identif <- nactiGeoname file4geonames uzDriveNactene kotyp kopec
-    nactiVse file4geonames (identif `S.insert` uzDriveNactene) zbytekKopcu
+dotahujVse :: FilePath -> S.Set String -> [(Kotyp, Kopec)] -> IO ()
+dotahujVse  _ _ [] = return ()
+dotahujVse  dirGeonames uzDriveNactene ((kotyp, kopec) : zbytekKopcu) = do
+    identif <- dotahniGeoname dirGeonames uzDriveNactene kotyp kopec
+    dotahujVse dirGeonames (identif `S.insert` uzDriveNactene) zbytekKopcu
 
-    -- (Vrch {vrVrchol = kopec})
-nactiGeoname :: FilePath -> S.Set String -> Kotyp -> Kopec -> IO (String)
-nactiGeoname file4geonames uzDriveNactene kotyp kopec  = do
+dotahniGeoname :: FilePath -> S.Set String -> Kotyp -> Kopec -> IO (String)
+dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
     let gpsKopec@(GpsKopec _ mnm identif) = kopec2gps kopec
     if identif `S.member` uzDriveNactene then do
         putStrLn $  "Uz nacteno: " ++ show kotyp ++ " " ++ identif
@@ -69,7 +70,7 @@ nactiGeoname file4geonames uzDriveNactene kotyp kopec  = do
         body <- provedUspesnyDotaz url
         putStrLn  $ show (S.size uzDriveNactene) ++ ". " ++ show kotyp ++ " " ++ show mnm ++ "   " ++ identif ++ ": " ++  take 100 (show body)
         threadDelay 3000000
-        appendFile file4geonames $ show (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body) ++ "\n"
+        ulozGeoname dirGeonames (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body)
     return identif
    where  
      provedUspesnyDotaz :: String -> IO B.ByteString
@@ -86,6 +87,11 @@ nactiGeoname file4geonames uzDriveNactene kotyp kopec  = do
           else 
            return body   
 
+ulozGeoname :: FilePath -> Georec -> IO ()
+ulozGeoname dirGeonames georec = do
+    let soubor = dirGeonames </> "geonames.txt"
+    appendFile soubor $ show georec ++ "\n"
+
 gpsKopec2url :: GpsKopec -> String
 gpsKopec2url (GpsKopec (lat, lng) _ _) = 
     "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat="  ++ show lat ++ "&lng=" ++ show lng
@@ -96,13 +102,14 @@ gpsKopec2mapyUrl (GpsKopec (lat, lng) _ _) =
     ++ "&x=" ++ show lng ++ "&y=" ++ show lat ++ "&id=" ++ show lng ++ "%2C" ++ show lat
            
 
-nactiGeonamovance :: FilePath -> IO [String]
-nactiGeonamovance fileName = do
-    txt <- readFile fileName
-    return $ map (vyberIdentif . ctiRadek) (lines txt)   
-    where 
-        ctiRadek :: String -> Georec
-        ctiRadek = read 
-        vyberIdentif (Georec _ _ identif _ _ _) = identif
+url2geonamesFileName :: String -> String
+url2geonamesFileName url =
+    let [lat, lng] = map (takeWhile isDigitOrMinus) . map (drop 4) . reverse . take 2 . reverse . (splitWhen (=='&')) $ url
+    in "geonames-" ++ "N" ++ lat ++ "E" ++ lng ++ ".txt"
 
-           
+isDigitOrMinus x = isDigit x || x == '-'
+
+qqq = do
+    print $ url2geonamesFileName "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat=-49.157500000000006&lng=19.999166666666667"    
+
+
