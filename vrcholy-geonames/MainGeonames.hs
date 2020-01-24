@@ -88,8 +88,8 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
            return body   
 
 ulozGeoname :: FilePath -> Georec -> IO ()
-ulozGeoname dirGeonames georec = do
-    let soubor = dirGeonames </> "geonames.txt"
+ulozGeoname dirGeonames georec@(Georec _ _ _ url _ _) = do
+    let soubor = dirGeonames </> url2geonamesFileName url
     appendFile soubor $ show georec ++ "\n"
 
 gpsKopec2url :: GpsKopec -> String
