@@ -13,6 +13,7 @@ import PripravaVstupu
 import Konst
 import Gps
 import GeonamesTypy
+import GeonamesParser
 
 import Control.Concurrent
 import qualified Data.Set as S
@@ -74,7 +75,8 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
       else do
         let url = gpsKopec2url gpsKopec
         body <- provedUspesnyDotaz url
-        putStrLn  $ show (S.size uzDriveNactene) ++ ". " ++ show kotyp ++ " " ++ show mnm ++ "   " ++ identif ++ ": " ++  take 100 (show body)
+        putStrLn  $ show (S.size uzDriveNactene) ++ ". " ++ show kotyp ++ " " ++ show mnm ++ "   " ++ identif ++ ": " 
+          ++  show (dejNazev body) ++ " | " ++ take 100 (show body)
         threadDelay 3000000
         ulozGeoname dirGeonames (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body)
     return identif
