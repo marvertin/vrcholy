@@ -74,7 +74,7 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
         let url = gpsKopec2url gpsKopec
         body <- provedUspesnyDotaz url
         putStrLn  $ show (S.size uzDriveNactene) ++ ". " ++ show kotyp ++ " " ++ show mnm ++ "   " ++ identif ++ ": " 
-          ++  show (dejNazev body) ++ " | " ++ take 100 (show body)
+          ++  show (dejNazev kotyp body) ++ " | " ++ take 100 (show body)
         threadDelay 3000000
         appendOneGeorec dirGeonames (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body)
     return identif

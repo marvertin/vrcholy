@@ -38,10 +38,10 @@ readGeorecDir dirName = do
         ctiRadek = read 
 
 -- Získá všechny záznamy geonames z daného adresáře jako mapu
-readGeorecDirAsMap :: FilePath -> IO (M.Map String B.ByteString)
+readGeorecDirAsMap :: FilePath -> IO (M.Map String (Kotyp, B.ByteString))
 readGeorecDirAsMap dirName = do
   recs <- readGeorecDir dirName
-  return . M.fromList . fmap (\ (Georec _ _ identif _ _ jsontext) -> (identif, jsontext)) $ recs
+  return . M.fromList . fmap (\ (Georec kotyp _ identif _ _ jsontext) -> (identif, (kotyp, jsontext))) $ recs
 
 -- Získá všechny záznamy geonames z daného adresáře jako množinu identifikátorů  
 readGeorecDirAsIdentifs :: FilePath -> IO (S.Set String)
