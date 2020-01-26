@@ -44,8 +44,8 @@ library:
 
 executables:
   vrcholy-1srtm:
-    main:                MainSrtm.hs
-    source-dirs:         vrcholy-srtm
+    main:                Main1Srtm.hs
+    source-dirs:         vrcholy-1srtm
     ghc-options:
     - -threaded
     - -rtsopts
@@ -54,8 +54,8 @@ executables:
     - vrcholy
 
   vrcholy-2potopa:
-    main:                MainHledani.hs
-    source-dirs:         vrcholy-hledani
+    main:                Main2Potopa.hs
+    source-dirs:         vrcholy-2potopa
     ghc-options:
     - -threaded
     - -rtsopts
@@ -64,8 +64,8 @@ executables:
     - vrcholy
 
   vrcholy-3geonames:
-    main:                MainGeonames.hs
-    source-dirs:         vrcholy-geonames
+    main:                Main3Geonames.hs
+    source-dirs:         vrcholy-3geonames
     ghc-options:
     - -threaded
     - -rtsopts
@@ -74,8 +74,8 @@ executables:
     - vrcholy    
 
   vrcholy-4gpx:
-    main:                MainGpx.hs
-    source-dirs:         vrcholy-gpx
+    main:                Main4Gpx.hs
+    source-dirs:         vrcholy-4gpx
     ghc-options:
     - -threaded
     - -rtsopts

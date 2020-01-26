@@ -1,3 +1,11 @@
+--
+-- Modul pro přímé hledání vrchol (Momentálně nepoužíváno)
+--
+--   1. Vyhledají se kandidáti, což jsou vrcholy, které žádný okolní vrchol nepřevyšuje,
+--       ale může mít kolem sebe stejně vysoké vrcholy
+--   2. Rozhlížíme se kolem sebe dokud:
+--        buď nedorazíme na másto vyšší než náš kadidát, pak kandidát není vrcholem
+--        nebo ve všech směrech narazíme na bod nižší, než je daná prominence, pak máme vrchol   
 module Hledac
     ( 
     zamapuj, -- kvuli ladeni

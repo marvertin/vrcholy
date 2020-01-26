@@ -13,7 +13,7 @@ import PripravaVstupu
 import Konst
 import GeonamesParser
 import JsonParser
-import GeonamesTypy
+import GeonamesIo
 
 import Data.Aeson.Lens
 --import Data.Aeson.Types (unpack)

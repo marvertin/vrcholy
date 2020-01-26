@@ -12,7 +12,7 @@ import VrchTypy
 import PripravaVstupu
 import Konst
 import Gps
-import GeonamesTypy
+import GeonamesIo
 import GeonamesParser
 
 import Control.Concurrent
@@ -33,8 +33,6 @@ import Control.Lens
 import Data.Text.Encoding
 import Data.Maybe
 import System.Directory
-import Data.List.Split
-import Data.Char
 import Data.Sort
 import System.IO.Error 
 import System.IO
@@ -78,7 +76,7 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
         putStrLn  $ show (S.size uzDriveNactene) ++ ". " ++ show kotyp ++ " " ++ show mnm ++ "   " ++ identif ++ ": " 
           ++  show (dejNazev body) ++ " | " ++ take 100 (show body)
         threadDelay 3000000
-        ulozGeoname dirGeonames (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body)
+        appendOneGeorec dirGeonames (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body)
     return identif
    where  
     provedUspesnyDotaz :: String -> IO B.ByteString
@@ -103,11 +101,6 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
            provedUspesnyDotaz url
        
     
-ulozGeoname :: FilePath -> Georec -> IO ()
-ulozGeoname dirGeonames georec@(Georec _ _ _ url _ _) = do
-    let soubor = dirGeonames </> url2geonamesFileName url
-    appendFile soubor $ show georec ++ "\n"
-
 gpsKopec2url :: GpsKopec -> String
 gpsKopec2url (GpsKopec (lat, lng) _ _) = 
     "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat="  ++ show lat ++ "&lng=" ++ show lng
@@ -117,24 +110,9 @@ gpsKopec2mapyUrl (GpsKopec (lat, lng) _ _) =
     "https://mapy.cz/turisticka?z=16&source=coor"  
     ++ "&x=" ++ show lng ++ "&y=" ++ show lat ++ "&id=" ++ show lng ++ "%2C" ++ show lat
            
-
-url2geonamesFileName :: String -> String
-url2geonamesFileName url =
-    let [lat, lng] = map (takeWhile isDigitOrMinus) . map (drop 4) . reverse . take 2 . reverse . (splitWhen (=='&')) $ url
-    in "geonames-" ++ nahradMinus 'N' 'S' lat ++ nahradMinus 'E' 'W' lng ++ ".txt"
-
-isDigitOrMinus x = isDigit x || x == '-'
-
-nahradMinus :: Char -> Char -> String -> String
-nahradMinus zp zm ('-' : s)  = (zm : s)
-nahradMinus zp zm s = (zp : s)
-
-qqq = do
-    print $ url2geonamesFileName "http://api.geonames.org/findNearbyJSON?username=marvertin&verbosity=FULL&maxRows=5&radius=1&lat=-49.157500000000006&lng=19.999166666666667"    
-
-
+-- rozdělní soubory v adresáři geonamů podle jmeno (bylo potřeba při migraci)
 rozdel srcDir destDir = do
     recs <- readGeorecDir srcDir
-    forM_ recs $ ulozGeoname destDir
+    forM_ recs $ appendOneGeorec destDir
 
 rozd = rozdel ggdir3 "M:/vrch-CZ/novegeonames"
