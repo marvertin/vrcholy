@@ -30,6 +30,7 @@ import Control.Monad
 import GHC.IO.Encoding
 import Network.Wreq
 import Control.Lens
+import Control.Applicative
 import Data.Text.Encoding
 import Data.Maybe
 import System.Directory
@@ -42,7 +43,7 @@ import Network.HTTP.Client (HttpException)
 -- import qualified Data.ByteString.Lazy.Internal as BI
 
 main :: IO ()
-main = dotahujGeoNames ggfile2 ggdir3
+main =  join $ liftM2 dotahujGeoNames ggfile2 ggdir3
 
 dotahujGeoNames :: FilePath -> FilePath -> IO ()
 dotahujGeoNames fileVrcholy dirGeonames = do
@@ -115,4 +116,4 @@ rozdel srcDir destDir = do
     recs <- readGeorecDir srcDir
     forM_ recs $ appendOneGeorec destDir
 
-rozd = rozdel ggdir3 "M:/vrch-CZ/novegeonames"
+-- rozd = rozdel ggdir3 "M:/vrch-CZ/novegeonames"

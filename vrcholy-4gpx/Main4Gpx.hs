@@ -25,9 +25,10 @@ import Control.Monad
 import GHC.IO.Encoding
 import Network.Wreq
 import Control.Lens
+import Control.Monad
 
 main :: IO ()
-main = vyrobGpx ggfile2 ggdir3 ggfile4
+main = join $ liftM3 vyrobGpx ggfile2 ggdir3 ggfile4
 
 vyrobGpx  :: FilePath -> FilePath -> FilePath -> IO ()
 vyrobGpx file2Vrcholy dir3Geonames file4Gpx = do

@@ -14,12 +14,12 @@ import Konst
 import System.Directory
 import qualified Data.ByteString as B
 import qualified Data.Map.Lazy as M
-import  Control.Arrow
-
+import Control.Arrow
+import Control.Monad
 
 minimalniProminence = 10
 
-main = potopaSvetaZTransponovanychSrtm ggdir1 ggfile2
+main = join $ liftM2 potopaSvetaZTransponovanychSrtm ggdir1 ggfile2
 
 potopaSvetaZTransponovanychSrtm :: FilePath -> FilePath -> IO ()
 potopaSvetaZTransponovanychSrtm dirInput fileOutput = do
