@@ -35,6 +35,11 @@ import System.Directory
 import Data.List.Split
 import Data.Char
 import Data.Sort
+import System.IO.Error 
+import System.IO
+import Control.Exception
+import Network.HTTP.Client (HttpException)
+
 -- import qualified Data.ByteString.Lazy.Internal as BI
 
 main :: IO ()
@@ -74,8 +79,8 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
         ulozGeoname dirGeonames (Georec kotyp mnm identif url (gpsKopec2mapyUrl gpsKopec) body)
     return identif
    where  
-     provedUspesnyDotaz :: String -> IO B.ByteString
-     provedUspesnyDotaz url = do
+    provedUspesnyDotaz :: String -> IO B.ByteString
+    provedUspesnyDotaz url = (do
         r <- get url
         let body = r ^. responseBody 
         let bodyGeonames = r ^? responseBody . key "geonames"
@@ -87,7 +92,15 @@ dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
            provedUspesnyDotaz url
           else 
            return body   
-
+       )  `catch` excHandler
+      where 
+       excHandler :: HttpException -> IO B.ByteString
+       excHandler e = do
+           putStrLn $ "Nejde to: " ++ show e
+           threadDelay $ 300 * 1000000
+           provedUspesnyDotaz url
+       
+    
 ulozGeoname :: FilePath -> Georec -> IO ()
 ulozGeoname dirGeonames georec@(Georec _ _ _ url _ _) = do
     let soubor = dirGeonames </> url2geonamesFileName url

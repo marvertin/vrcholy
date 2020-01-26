@@ -37,6 +37,7 @@ dependencies:
 - utf8-string
 - split
 - sort
+- http-client
 
 library:
   source-dirs: src
