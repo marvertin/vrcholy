@@ -62,7 +62,7 @@ bodXml nazevFce ((poradi, vzdalenost), vrch) =
 <type>Geocache|Project APE Cache</type>
 <extensions>
  <groundspeak:cache>
-    <groundspeak:name>#{vrnazev}</groundspeak:name>
+    <groundspeak:name><![CDATA[#{vrnazev}]]></groundspeak:name>
     <groundspeak:placed_by>-</groundspeak:placed_by>
     <groundspeak:container>Other</groundspeak:container>
  </groundspeak:cache>
@@ -84,7 +84,7 @@ bodXml nazevFce ((poradi, vzdalenost), vrch) =
 <time>#{cas}</time>
 <name>KSV#{vridentif}</name>
 
-<desc>#{ksnazev}Klíčové sedlo #{ksele} m.n.m</desc>
+<desc><![CDATA[#{ksnazev} Klíčové sedlo #{ksele} m.n.m]]></desc>
 <type>Waypoint|Reference Point</type>
 <extensions>
  <gpxg:GeogetExtension>
@@ -98,7 +98,7 @@ bodXml nazevFce ((poradi, vzdalenost), vrch) =
 <wpt lat="#{mvlat}" lon="#{mvlon}">
 <time>#{cas}</time>
 <name>MVV#{vridentif}</name>
-<desc>#{mvnazev}Mateřský vrchol #{mvele} m.n.m</desc>
+<desc><![CDATA[#{mvnazev} Mateřský vrchol #{mvele} m.n.m]]></desc>
 <type>Waypoint|Reference Point</type>
 <extensions>
  <gpxg:GeogetExtension>
