@@ -38,6 +38,8 @@ dependencies:
 - split
 - sort
 - http-client
+- svg-builder
+- colour
 
 library:
   source-dirs: src
