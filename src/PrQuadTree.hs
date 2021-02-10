@@ -43,8 +43,15 @@ data Rect i = Rect (i,i) (i,i)
 
 type Muj = Tree Double [Bool]
 
+instance (Numd i, Semigroup a) => Semigroup (Tree i a) where
+   -- mempty = Empty
+   (<>) = unionTrees
+
+instance (Numd i, Semigroup a) => Monoid (Tree i a) where
+   mempty = Empty
+
 q1 = pointToTree (31,67) [True]
-q2 = pointToTree (6,15) [False]
+q2 = pointToTree (32,66) [False]
 q3 = unionTrees q1 q2  :: Muj 
 q4 = sameTreeSize q1 q2 :: (Muj, Muj)
 
@@ -111,12 +118,12 @@ mergeNodes fceLeftNode fceRightNode fceSamePoints = mergeNodes'
             | xy1 == xy2 = fceSamePoints xy1 a1 a2
         mergeNodes' rect nodeOrPoint point@(Point _ _) = mergeNodes' rect nodeOrPoint (pointToNode rect point)
         mergeNodes' rect point@(Point _ _) node = mergeNodes' rect (pointToNode rect point) node
-        mergeNodes' (Rect (x1,x2) (y1,y2)) (Node jz1 jv1 sz1 sv1) (Node jz2 jv2 sz2 sv2) = 
+        mergeNodes' (Rect (x1,y1) (x2,y2)) (Node jz1 jv1 sz1 sv1) (Node jz2 jv2 sz2 sv2) = 
             packNode $ Node { 
-                jz = mergeNodes' (Rect (x1, xmid) (y1, ymid)) (jz1) (jz2),
-                jv = mergeNodes' (Rect (xmid, x2) (y1, ymid)) (jv1) (jz2),
-                sz = mergeNodes' (Rect (x1, xmid) (ymid, y2)) (sz1) (sz2),
-                sv = mergeNodes' (Rect (xmid, x2) (ymid, y2)) (sv1) (sv2)
+                jz = mergeNodes' (Rect (x1, y1) (xmid, ymid)) (jz1) (jz2),
+                jv = mergeNodes' (Rect (xmid, y1) (x2, ymid)) (jv1) (jv2),
+                sz = mergeNodes' (Rect (x1, ymid) (xmid, y2)) (sz1) (sz2),
+                sv = mergeNodes' (Rect (xmid, ymid) (x2, y2)) (sv1) (sv2)
             }
             where xmid = div2 (x1 + x2)
                   ymid = div2 (y1 + y2)
@@ -137,7 +144,7 @@ data FilterResult = ALL | SOME | NONE
 filterNode :: (Numd i) => (Rect i -> FilterResult) -> ((i,i) -> Bool) -> Rect i -> Node i a -> Node i a 
 filterNode _ _ _ EmpNd = EmpNd
 filterNode _ fce _ point@(Point xy _) = if fce xy then point else EmpNd
-filterNode fce fcePoint rect@(Rect (x1,x2) (y1,y2)) node@(Node jz jv sz sv) =
+filterNode fce fcePoint rect@(Rect (x1,y1) (x2,y2)) node@(Node jz jv sz sv) =
       let filterResult = fce rect
           xx = case filterResult of
              ALL -> node
@@ -146,10 +153,10 @@ filterNode fce fcePoint rect@(Rect (x1,x2) (y1,y2)) node@(Node jz jv sz sv) =
                        xmid = div2 (x1 + x2)
                        ymid = div2 (y1 + y2)
                     in packNode $ Node { 
-                        jz = filterNode' (Rect (x1, xmid) (y1, ymid)) jz,
-                        jv = filterNode' (Rect (xmid, x2) (y1, ymid)) jv,
-                        sz = filterNode' (Rect (x1, xmid) (ymid, y2)) sz,
-                        sv = filterNode' (Rect (xmid, x2) (ymid, y2)) sv
+                        jz = filterNode' (Rect (x1, y1) (xmid, ymid)) jz,
+                        jv = filterNode' (Rect (xmid, y1) (x2, ymid)) jv,
+                        sz = filterNode' (Rect (x1, ymid) (xmid, y2)) sz,
+                        sv = filterNode' (Rect (xmid, ymid) (x2, y2)) sv
                     }
              NONE -> EmpNd  
       in xx
