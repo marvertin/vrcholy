@@ -8,25 +8,34 @@ import Data.Ratio
 class  (Num a, Ord a) => Numd a  where
     -- | the rational equivalent of its real argument with full precision
     divd :: a -> a -> a
+    floord :: Integral b =>  a -> b
     
     {-# INLINE div2 #-}
     div2 :: a -> a
     div2 = flip divd 2
 
+   
+
+
 instance Numd Int where
     divd = div
+    floord = fromIntegral . id
 
 instance Numd Integer where
-    divd = div    
+    divd = div 
+    floord = fromIntegral . id   
 
 instance Numd Float where
-    divd = (/)        
+    divd = (/) 
+    floord = fromIntegral . floor
 
 instance Numd Double where
-    divd = (/)            
+    divd = (/)    
+    floord = fromIntegral . floor
 
 instance Integral a => Numd (Ratio a) where
     divd = (/)
+    floord = fromIntegral . floor
 
 -- Pořadí nódů je JZ, JV, SZ, SV
 data Node i a =   EmpNd | Point (i, i) a | Node { jz :: (Node i a), jv :: (Node i a), sz :: (Node i a), sv :: (Node i a) }
@@ -41,7 +50,7 @@ data Rect i = Rect (i,i) (i,i)
 
 -- Vlastní strom
 
-type Muj = Tree Double [Bool]
+type Muj = Tree Int [Bool]
 
 instance (Numd i, Semigroup a) => Semigroup (Tree i a) where
    -- mempty = Empty
@@ -50,14 +59,16 @@ instance (Numd i, Semigroup a) => Semigroup (Tree i a) where
 instance (Numd i, Semigroup a) => Monoid (Tree i a) where
    mempty = Empty
 
-q1 = pointToTree (31,67) [True]
-q2 = pointToTree (32,66) [False]
+q1a = pointToTree (31,67) [True] :: Muj
+q2a = pointToTree (32,66) [False] :: Muj
+q1 = pointToTree (3,2) [True] :: Muj
+q2 = pointToTree (4,2) [False] :: Muj
 q3 = unionTrees q1 q2  :: Muj 
 q4 = sameTreeSize q1 q2 :: (Muj, Muj)
 
 
-pointToTree :: RealFrac i => (i, i) -> a -> Tree i a
-pointToTree xy@(x, y) dat = Tree (floor x, floor y) 1 (Point xy dat)
+pointToTree :: Numd i => (i, i) -> a -> Tree i a
+pointToTree xy@(x, y) dat = Tree (floord x, floord y) 1 (Point xy dat)
 
 sameTreeSize :: Tree i a -> Tree i a -> (Tree i a, Tree i a)
 sameTreeSize t1@(Tree xy1 size1 node1) t2@(Tree xy2 size2 node2)
@@ -171,3 +182,8 @@ packNode (Node EmpNd EmpNd EmpNd point@(Point _ _)) = point
 packNode node = node
 
 
+-- qw :: (Num a, Ord a) => a -> a
+-- qw x = floor $ realToFrac x
+
+--qw :: (Numd a) => a -> a
+--qw x = floord x
