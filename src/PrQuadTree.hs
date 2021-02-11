@@ -1,9 +1,10 @@
 module PrQuadTree
     (   pointToTree,
-        unionTrees, q1, q2, q3, q4, treeUp
+        unionTrees, q1, q2, q3, q4, treeUp,qa,q5
     ) where
 
 import Data.Ratio
+import Debug.Trace
 
 class  (Num a, Ord a) => Numd a  where
     -- | the rational equivalent of its real argument with full precision
@@ -45,27 +46,41 @@ data Tree i a = Empty | Tree (Integer, Integer) Integer (Node i a)
    deriving Show
 -- Obdélník je určen JZ a SV rohem. JZ do obélníku patří SV již nikoli. (Polouzavřené intervaly)
 -- "Rect (5,8) (5,8)"" neobsahuje tedy žádný bod. JZ musí být menší nebo roven SV.
+
 data Rect i = Rect (i,i) (i,i)
    deriving Show
 
 -- Vlastní strom
 
-type Muj = Tree Int [Bool]
 
-instance (Numd i, Semigroup a) => Semigroup (Tree i a) where
+instance (Numd i, Semigroup a, Show i, Show a) => Semigroup (Tree i a) where
    -- mempty = Empty
    (<>) = unionTrees
 
-instance (Numd i, Semigroup a) => Monoid (Tree i a) where
+instance (Numd i, Semigroup a, Show i, Show a) => Monoid (Tree i a) where
    mempty = Empty
 
-q1a = pointToTree (31,67) [True] :: Muj
-q2a = pointToTree (32,66) [False] :: Muj
-q1 = pointToTree (3,2) [True] :: Muj
-q2 = pointToTree (4,2) [False] :: Muj
-q3 = unionTrees q1 q2  :: Muj 
-q4 = sameTreeSize q1 q2 :: (Muj, Muj)
+type Muj = Tree Int Nic
+data Nic = Q
+  deriving Show
 
+instance Semigroup Nic where
+   x <> y = Q
+
+instance Monoid Nic where
+   mempty = Q
+
+q1 = pointToTree (31,67) Q :: Muj
+q2 = pointToTree (32,66) Q :: Muj
+q2x = pointToTree (7,2) Q :: Muj
+q2y = pointToTree (7,3) Q :: Muj
+q1b = pointToTree (0,0) Q :: Muj
+q2b = pointToTree (1,0) Q :: Muj
+q3 = q1 <> q2 <> q2x <> q2y :: Muj 
+q4 = sameTreeSize q1 q2 :: (Muj, Muj)
+q5 = treeRect $ fst q4
+
+qa = pointToNode (Rect (0, 0) (2, 2)) (Point (0,0) Q) :: Node Int Nic
 
 pointToTree :: Numd i => (i, i) -> a -> Tree i a
 pointToTree xy@(x, y) dat = Tree (floord x, floord y) 1 (Point xy dat)
@@ -94,32 +109,32 @@ treeRect (Tree (x, y) size _) =
         size' = fromIntegral size  
     in Rect (x', y') (x' + size', y' + size')
 
-unionTrees :: (Numd i, Semigroup a) => Tree i a -> Tree i a -> Tree i a
+unionTrees :: (Numd i, Show i, Show a, Semigroup a) => Tree i a -> Tree i a -> Tree i a
 unionTrees =        mergeTrees id            id            (\xy a1 a2 -> Point xy (a1 <> a2))
 
-intersectionTrees :: (Numd i) => Tree i a -> Tree i a -> Tree i a
+intersectionTrees :: (Numd i, Show i, Show a) => Tree i a -> Tree i a -> Tree i a
 intersectionTrees = mergeTrees (const EmpNd) (const EmpNd) (\xy a1 a2 -> Point xy a1)
 
-differenceTrees :: (Numd i) => Tree i a -> Tree i a -> Tree i a
+differenceTrees :: (Numd i, Show i, Show a) => Tree i a -> Tree i a -> Tree i a
 differenceTrees =   mergeTrees id            (const EmpNd) (const . const . const $ EmpNd)
 
-mergeTrees :: (Numd i) => (Node i a -> Node i a) -> (Node i a -> Node i a) -> ((i,i) -> a -> a -> Node i a)
+mergeTrees :: (Numd i, Show i, Show a) => (Node i a -> Node i a) -> (Node i a -> Node i a) -> ((i,i) -> a -> a -> Node i a)
                   -> Tree i a -> Tree i a -> Tree i a
 mergeTrees fceLeftNode fceRightNode fceSamePoints tree1 tree2 =
     let (tree1'@(Tree xy size node1), tree2'@(Tree _ _ node2)) = sameTreeSize tree1 tree2
-    in Tree xy size (mergeNodes fceLeftNode fceRightNode fceSamePoints (treeRect tree1) node1 node2)
+    in Tree xy size (mergeNodes fceLeftNode fceRightNode fceSamePoints (treeRect tree1') node1 node2)
 -- Práce s nódy
 
-unionNodes :: (Numd i, Semigroup a) => Rect i -> Node i a -> Node i a -> Node i a
+unionNodes :: (Numd i, Show i, Show a, Semigroup a) => Rect i -> Node i a -> Node i a -> Node i a
 unionNodes =        mergeNodes id            id            (\xy a1 a2 -> Point xy (a1 <> a2))
 
-intersectionNodes :: (Numd i) => Rect i -> Node i a -> Node i a -> Node i a
+intersectionNodes :: (Numd i, Show i, Show a) => Rect i -> Node i a -> Node i a -> Node i a
 intersectionNodes = mergeNodes (const EmpNd) (const EmpNd) (\xy a1 a2 -> Point xy a1)
 
-differenceNodes :: (Numd i) => Rect i -> Node i a -> Node i a -> Node i a
+differenceNodes :: (Numd i, Show i, Show a) => Rect i -> Node i a -> Node i a -> Node i a
 differenceNodes =   mergeNodes id            (const EmpNd) (const . const . const $ EmpNd)
 
-mergeNodes :: (Numd i) => (Node i a -> Node i a) -> (Node i a -> Node i a) -> ((i,i) -> a -> a -> Node i a)
+mergeNodes :: (Numd i, Show i, Show a) => (Node i a -> Node i a) -> (Node i a -> Node i a) -> ((i,i) -> a -> a -> Node i a)
                  -> Rect i -> Node i a -> Node i a -> Node i a
 mergeNodes fceLeftNode fceRightNode fceSamePoints = mergeNodes'
      where              
@@ -130,7 +145,7 @@ mergeNodes fceLeftNode fceRightNode fceSamePoints = mergeNodes'
         mergeNodes' rect nodeOrPoint point@(Point _ _) = mergeNodes' rect nodeOrPoint (pointToNode rect point)
         mergeNodes' rect point@(Point _ _) node = mergeNodes' rect (pointToNode rect point) node
         mergeNodes' (Rect (x1,y1) (x2,y2)) (Node jz1 jv1 sz1 sv1) (Node jz2 jv2 sz2 sv2) = 
-            packNode $ Node { 
+            Node { 
                 jz = mergeNodes' (Rect (x1, y1) (xmid, ymid)) (jz1) (jz2),
                 jv = mergeNodes' (Rect (xmid, y1) (x2, ymid)) (jv1) (jv2),
                 sz = mergeNodes' (Rect (x1, ymid) (xmid, y2)) (sz1) (sz2),
@@ -139,14 +154,15 @@ mergeNodes fceLeftNode fceRightNode fceSamePoints = mergeNodes'
             where xmid = div2 (x1 + x2)
                   ymid = div2 (y1 + y2)
      
-pointToNode :: Numd i => Rect i -> Node i a -> Node i a
+pointToNode :: (Numd i,  Show i, Show a, Show a) => Rect i -> Node i a -> Node i a
 pointToNode _ EmpNd = EmpNd
-pointToNode (Rect (x1,x2) (y1,y2)) point@(Point (x,y) _) = 
-      if (y < ymid) then if (x < xmid) then Node {jz = point, jv = EmpNd, sz = EmpNd, sv = EmpNd}
-                                       else Node {jz = EmpNd, jv = point, sz = EmpNd, sv = EmpNd}
-                    else if (x < xmid) then Node {jz = EmpNd, jv = EmpNd, sz = point, sv = EmpNd}
-                                       else Node {jz = EmpNd, jv = EmpNd, sz = EmpNd, sv = point}
-
+pointToNode rct@(Rect (x1,y1) (x2,y2)) point@(Point (x,y) _) = 
+     let vysl =
+            if (y < ymid) then if (x < xmid)  then Node {jz = point, jv = EmpNd, sz = EmpNd, sv = EmpNd}
+                                              else Node {jz = EmpNd, jv = point, sz = EmpNd, sv = EmpNd}
+                           else if (x < xmid) then Node {jz = EmpNd, jv = EmpNd, sz = point, sv = EmpNd}
+                                              else Node {jz = EmpNd, jv = EmpNd, sz = EmpNd, sv = point}
+     in trace ("poinToNode: " ++ show rct ++ " | " ++ show point ++  " | " ++ show vysl ++ "****" ++ show xmid ++ "*" ++ show ymid) vysl 
     where xmid = div2 (x1 + x2)
           ymid = div2 (y1 + y2)
 
