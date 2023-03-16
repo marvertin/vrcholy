@@ -11,6 +11,7 @@ import Uzemi
 import Gps
 import Control.Arrow
 import VrchTypy(Vrch(..), Kopec(..))
+import HraniceCeska
 import Data.String.Interpolate ( i )
 import Text.Printf (printf)
 import Data.List
@@ -27,11 +28,22 @@ import Text.Printf (printf)
 txt :: Show a => a -> Text 
 txt = pack . show 
 
+vyskaOkna = 4800
+sirkaOkna = 8400
+xOkna = 15600
+yOkna = 57600
+
+
 svg :: Element -> Element
 svg content =
      doctype
-  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "2100", Height_ <<- "1200", ViewBox_ <<- "15600 0 8400 4800"]
+--  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "2100", Height_ <<- "1200", ViewBox_ <<- "15600 57600 8400 4800"]
 
+  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "2100", Height_ <<- "1200", ViewBox_ <<- 
+          txt xOkna <> " "
+       <> txt yOkna <> " "
+       <> txt sirkaOkna <> " "
+       <> txt vyskaOkna]
 
 logo :: Element
 logo =
@@ -65,14 +77,50 @@ colorToHex r g b = pack $ printf "#%02x%02x%02x" r g b
          4 -> 0
          5 -> 0
 
+-- Toto je jen proto, že  souřadnicový systém na monitoru je obráceně
+otočSvisle :: Element -> Element
+otočSvisle = g_ [ Transform_ <<- "translate(0," <> txt (yOkna + vyskaOkna / 2) <> ") scale(1,-1) translate(0," <> txt (-yOkna - vyskaOkna / 2) <> ")" ] 
+
+-- wgs84 = g_ [ Transform_ <<- "scale(1200, 1200)" ] 
+
+-- Pomocné objekty
+
+-- Škrtanec škrtá to, co máme vykresleno, aby bylo vidět
+škrtanec = g_ [Style_ <<- "fill:none;stroke-width:3;stroke:rgb(0,0,0)"] $ 
+           line_ [X1_ <<- txt(15600), Y1_ <<- txt(57600), X2_ <<- txt(15600 + 8400), Y2_ <<- txt(57600 + 4800) ]
+        <> line_ [X1_ <<- txt(15600 + 8400), Y1_ <<- txt(57600), X2_ <<- txt(15600), Y2_ <<- txt(57600 + 4800) ]
+
+-- Zobrazení souřadnicibých OS, jen pro problémy
+--osy = g_ [Style_ <<- "fill:none;stroke-width:3;stroke:rgb(0,0,0)"] $ 
+--           line_ [X1_ <<- txt(0), Y1_ <<- txt(-100000), X2_ <<- txt(0), Y2_ <<- txt(100000) ]
+--        <> line_ [Y1_ <<- txt(0), X1_ <<- txt(-100000), Y2_ <<- txt(0), X2_ <<- txt(100000) ]
+
+-- Obdelník N49° E16°, tam je i Brno i maršov.
+brenskyObdelnik :: Element
+brenskyObdelnik = rect_ [X_ <<- txt (16 * 1200), Y_ <<- txt (49 * 1200), Height_ <<- "1200", Width_ <<- "1200", Style_ <<- "fill:none;stroke-width:3;stroke:rgb(0,0,0)" ]
+
+-- Barevný proužek hodnot
 proužek :: Element
 proužek = 
   let
-     proužeček n = rect_ [X_ <<- txt (4 * n + 15600), Y_ <<- txt (57600), Height_ <<- "200", Width_ <<- "8", škála n ->> Fill_]
+     proužeček n = rect_ [X_ <<- txt (4 * n + xOkna), Y_ <<- txt (57600), Height_ <<- "200", Width_ <<- "8", škála n ->> Fill_]
   in mconcat $ map proužeček [0..1350]
 
+
+wgs84 = g_ [ Transform_ <<- "scale(1200, 1200)" ] 
+
+-- Obrys české republiky
+obrysRepubliky :: Element
+obrysRepubliky = wgs84 $ mconcat $ map (usek . konvert ) hraniceCeska
+   where 
+      konvert (longitude, latidude) = (longitude, latidude)
+      usek (x, y) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- "0.02", Fill_ <<-  "black" ]
+
+
+-- Vlastní výpočty bodů
+
 svgPoint :: Kopec -> Element
-svgPoint (Kopec mnm (Moustrov (Mou x y : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt (62400 - y), R_ <<- "5", Fill_ <<-  škála r]                   
+svgPoint (Kopec mnm (Moustrov (Mou x y : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- "5", Fill_ <<-  škála r]                   
   where r =  (max 0 . min 1350) (mnm - 200)
 
 svgPoints :: [Kopec] -> Element
@@ -89,6 +137,6 @@ hranice mous =
 
 -- 49.2839519N, 16.3563408E
 vrchSvg :: [Vrch] -> String
-vrchSvg vrchy = (unpack . toStrict . renderText)  $ svg (svgPoints (map vrVrchol vrchy) <> proužek)
+vrchSvg vrchy = (unpack . toStrict . renderText)  $ svg (otočSvisle (obrysRepubliky <> škrtanec <> brenskyObdelnik <> svgPoints (map vrVrchol vrchy) <> proužek))
 -- vrchSvg vrchy = show $ hranice (map extractMou vrchy)
 -- (Mou 15600 57600, Mou 23999 62399)  8400 x 4800
