@@ -109,34 +109,22 @@ proužek =
 
 wgs84 = g_ [ Transform_ <<- "scale(1200, 1200)" ] 
 
--- Obrys české republiky
-obrysRepubliky2 :: Element
-obrysRepubliky2 = wgs84 $ mconcat $ map (usek . konvert ) hraniceCeska
-   where 
-      konvert (longitude, latidude) = (longitude, latidude)
-      usek (x, y) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- "0.02", Fill_ <<-  "black" ]
-
 
 -- Obrys české republiky
 obrysRepubliky :: Element
 obrysRepubliky = wgs84 $ path_ [ D_ <<- (hlava hraniceCeska) <>  (mconcat $ map (usek . konvert ) (tail hraniceCeska) ) <> z,
                                            Stroke_ <<- "black", Stroke_width_ <<- "0.01"
-                                         , Fill_ <<- "gray"  ]
+                                         , Fill_ <<- "#EEEEEE"  ]
    where 
       konvert (longitude, latidude) = (longitude, latidude)
       usek (x, y) = lA x y
       hlava ((x, y): _) = mA x y
 
 
-
--- path_ [ D_ <<- (mconcat $ map (usek . konvert ) hraniceCeska) ,
---                                         Stroke_ <<- "blue"
---                                         , Fill_ <<- "orange" ]
-
 -- Vlastní výpočty bodů
 
 svgPoint :: Kopec -> Element
-svgPoint (Kopec mnm (Moustrov (Mou x y : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- "5", Fill_ <<-  škála r]                   
+svgPoint (Kopec mnm (Moustrov (Mou x y : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- "50", Fill_ <<-  škála r]                   
   where r =  (max 0 . min 1350) (mnm - 200)
 
 svgPoints :: [Kopec] -> Element

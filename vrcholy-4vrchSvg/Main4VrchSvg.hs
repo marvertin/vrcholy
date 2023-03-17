@@ -29,15 +29,29 @@ import Control.Lens
 import Control.Monad
 
 main :: IO ()
-main = join $ liftM2 vyrobGpx ggfile2 ggfile4vrchSvg
+main = join $ liftM2 vyrobSvg ggfile2 ggfile4vrchSvg
 
-vyrobGpx  :: FilePath -> FilePath -> IO ()
-vyrobGpx file2Vrcholy file4vrchSvg = do
+prořeď :: Int -> [a] -> [a]
+prořeď _ [] = []
+prořeď n list
+     | n < 0 = list
+prořeď n list = (head list: prořeď n (drop n list))
+
+
+
+filtrujVrchy :: [Vrch] -> [Vrch]
+filtrujVrchy = prořeď 100
+
+
+vyrobSvg  :: FilePath -> FilePath -> IO ()
+vyrobSvg file2Vrcholy file4vrchSvg = do
     setLocaleEncoding utf8
     putStrLn $ "Prevod do SVG vrcholu: " ++  file2Vrcholy
     text <- readFile file2Vrcholy
-    let vrchy = map read (lines text) :: [Vrch]
-    putStrLn $ "Pocet vrchu:     " ++  (show . length) vrchy
+    let vrchyVse = map read (lines text) :: [Vrch]
+    putStrLn $ "Pocet vrchu celkem:         " ++  (show . length) vrchyVse
+    let vrchy = filtrujVrchy vrchyVse
+    putStrLn $ "Pocet vrchu filtrovano:     " ++  (show . length) vrchy
     createDirectoryIfMissing True (takeDirectory file4vrchSvg)
     writeFile file4vrchSvg  (vrchSvg vrchy)
     
