@@ -33,6 +33,18 @@ sirkaOkna = 8400
 xOkna = 15600
 yOkna = 57600
 
+-- Bod v mapových souřadnicích, který se má vykreslit na sřed okna
+xMapCenter = 19800  
+yMapCenter = 60000
+
+--Šířka na papě, která má být vykreslena do okna
+xMapSize = 8400
+yMapSize = 4800
+
+-- Veliksot okna asi v pixelech (viewBox)
+xWinSize = 1680  
+yWinSize = 960
+
 
 svg :: Element -> Element
 svg content =
