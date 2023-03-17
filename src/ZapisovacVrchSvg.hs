@@ -110,12 +110,28 @@ proužek =
 wgs84 = g_ [ Transform_ <<- "scale(1200, 1200)" ] 
 
 -- Obrys české republiky
-obrysRepubliky :: Element
-obrysRepubliky = wgs84 $ mconcat $ map (usek . konvert ) hraniceCeska
+obrysRepubliky2 :: Element
+obrysRepubliky2 = wgs84 $ mconcat $ map (usek . konvert ) hraniceCeska
    where 
       konvert (longitude, latidude) = (longitude, latidude)
       usek (x, y) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- "0.02", Fill_ <<-  "black" ]
 
+
+-- Obrys české republiky
+obrysRepubliky :: Element
+obrysRepubliky = wgs84 $ path_ [ D_ <<- (hlava hraniceCeska) <>  (mconcat $ map (usek . konvert ) (tail hraniceCeska) ) <> z,
+                                           Stroke_ <<- "black", Stroke_width_ <<- "0.01"
+                                         , Fill_ <<- "gray"  ]
+   where 
+      konvert (longitude, latidude) = (longitude, latidude)
+      usek (x, y) = lA x y
+      hlava ((x, y): _) = mA x y
+
+
+
+-- path_ [ D_ <<- (mconcat $ map (usek . konvert ) hraniceCeska) ,
+--                                         Stroke_ <<- "blue"
+--                                         , Fill_ <<- "orange" ]
 
 -- Vlastní výpočty bodů
 
