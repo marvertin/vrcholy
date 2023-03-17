@@ -40,7 +40,7 @@ prořeď n list = (head list: prořeď n (drop n list))
 
 
 filtrujVrchy :: [Vrch] -> [Vrch]
-filtrujVrchy = prořeď 100
+filtrujVrchy = prořeď 1
 
 
 vyrobSvg  :: FilePath -> FilePath -> IO ()
