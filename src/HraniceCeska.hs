@@ -1,13 +1,8 @@
 module HraniceCeska
   (
-      hraniceCeska,
-      stredniSirkaCeska
+      hraniceCeska
+      
    ) where
-
-import Data.Monoid
-
-stredniSirkaCeska :: Double
-stredniSirkaCeska =  (getSum $ mconcat $ map (Sum . snd) hraniceCeska) / (fromIntegral $ length hraniceCeska)
 
 
 hraniceCeska = 

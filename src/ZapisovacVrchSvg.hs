@@ -12,6 +12,7 @@ import Gps
 import Control.Arrow
 import VrchTypy(Vrch(..), Kopec(..))
 import HraniceCeska
+import Cesko
 import Data.String.Interpolate ( i )
 import Text.Printf (printf)
 import Data.List
@@ -27,24 +28,18 @@ import Text.Printf (printf)
 import Data.String.Interpolate ( i )
 
 -- Bod v mapových souřadnicích, který se má vykreslit na sřed okna
-xMapCenter = 18600   :: Double  
-yMapCenter = 59600  :: Double
+(xMapCenter, yMapCenter) = mouToKm (Mou 18600 59600)
 
 --Šířka na papě, která má být vykreslena do okna
-xMapSize = 8400  :: Double
-yMapSize = 5500  :: Double
+(xMapSize, yMapSize) = mouToKm (Mou 8400 5500)
 
 -- Veliksot okna asi v pixelech (viewBox)
 xWinSize = 1680   :: Double 
 yWinSize = xWinSize * yMapSize / xMapSize
 
--- Zkreslení způsobené tím, že v zeměpisné délce jsou stupně kratší než v šířce
--- Není dobré toto použít, jak je použito, neboť to zkresluje i vlastní kreslené tvary, z kružnic dělá elipsy. Na souřadnice budeme muset jít jinak.
-
-wgsZkresleni = 1 / cos (stredniSirkaCeska / 180 * pi) 
 
 -- Poloměr kruhu jednoho bodu
-polomerBodu = 5
+polomerBodu = 0.5
 
 ------------------------------------------------------------------------------
 -- Hlevní funkce vykreslující vše
@@ -65,8 +60,9 @@ svg content =
 -- Vlastní výpočty bodů
 
 svgPoint :: Kopec -> Element
-svgPoint (Kopec mnm (Moustrov (Mou x y : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- txt polomerBodu, Fill_ <<-  škála r]
+svgPoint (Kopec mnm (Moustrov (mou : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- txt polomerBodu, Fill_ <<-  škála r]
   where r =  (max 0 . min 1350) (mnm - 200)
+        (x, y) = mouToKm mou
 
 svgPoints :: [Kopec] -> Element
 svgPoints = mconcat . map svgPoint 
@@ -87,7 +83,7 @@ obrysRepubliky = wgs84 $ path_ [ D_ <<- (hlava hraniceCeska) <>  (mconcat $ map 
 
 -- Obdelník N49° E16°, tam je i Brno i maršov.
 brenskyObdelnik :: Element
-brenskyObdelnik = rect_ [X_ <<- txt (16 * 1200), Y_ <<- txt (49 * 1200), Height_ <<- "1200", Width_ <<- "1200", Style_ <<- "fill:none;stroke-width:3;stroke:rgb(0,0,0)" ]
+brenskyObdelnik = wgs84 $ rect_ [X_ <<- txt 16,  Y_ <<- txt 49, Height_ <<- "1", Width_ <<- "1", Style_ <<- "fill:none;stroke-width:0.005;stroke:rgb(0,0,0)" ]
 
 -- Domácí bod
 domácíBod :: Element
@@ -101,11 +97,14 @@ domácíBod =
 -- Transformace souřadnic tak, aby se to hezky vykreslilo podle zadaných parametrů nahoře programu
 -- Kreslí v třívteřinových souřadnicích, počátek je průnik rovníku a nultého poledníku.
 coord3vteriny :: Element -> Element
-coord3vteriny = g_ [ Transform_ <<- [i|translate(#{ xWinSize / 2 },#{ yWinSize / 2}) scale(#{ xWinSize / xMapSize  }, #{- yWinSize / yMapSize * wgsZkresleni }) translate(#{ -xMapCenter },#{- yMapCenter })|] ] 
+coord3vteriny = g_ [ Transform_ <<- [i|translate(#{ xWinSize / 2 },#{ yWinSize / 2}) scale(#{ xWinSize / xMapSize  }, #{- yWinSize / yMapSize  }) translate(#{ -xMapCenter },#{- yMapCenter })|] ] 
 -- coord3vteriny = g_ [ Transform_ <<- "translate(0," <> txt (yOkna + vyskaOkna / 2) <> ") scale(1,-1) translate(0," <> txt (-yOkna - vyskaOkna / 2) <> ")" ] 
 
 -- Umožnít kreslit ve Wgs souřadnicích, ale musí být uvnitř coord3vteriny
-wgs84 = g_ [ Transform_ <<- "scale(1200, 1200)" ] 
+wgs84 = 
+   g_ [ Transform_ <<- [i|scale(#{xScale}, #{yScale})|] ] 
+   where (xScale, yScale) = mouToKm(Mou 1200 1200)
+ 
 
 ----------------------------------------------------------------
 -- Pomocné objekty v rámci základního souřadnicového systému (mimo mapu)

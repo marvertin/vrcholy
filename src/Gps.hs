@@ -7,6 +7,7 @@ module Gps
        hcGps,
        kopec2gps, 
        vrch2gps,
+       boduNaStupen
     ) where
  
 import Lib
@@ -20,6 +21,11 @@ import Data.Function
 
 hcGps = (49.2839519 :: Double, 16.3563408 :: Double)
 
+-- Kolik bodů máme v Mou souřanicích na zeměpisný stupeň
+boduNaStupenInt = 1200 :: Int
+boduNaStupen = 1200 :: Integer
+boduNaStupenD = fromIntegral boduNaStupen
+
 type Identif = String 
 
 data GpsKopec = GpsKopec (Double, Double) Int Identif
@@ -30,17 +36,17 @@ data GpsVrch = GpsVrch Int GpsKopec GpsKopec GpsKopec
   deriving (Show)
 
   -- Kvocient převodu na GPS souřadnice
-kvoc = 1.0 / 1200 :: Double;
+kvoc = 1.0 / boduNaStupenD :: Double;
 
--- rozsahy jsou: x: <-180 * 1200 : 180 * 1200>
---               y: <-80 * 1200 : 80 * 1200>
+-- rozsahy jsou: x: <-180 * boduNaStupen : 180 * boduNaStupen>
+--               y: <-80 * boduNaStupen : 80 * boduNaStupen>
 mouToId :: Mou -> String
 mouToId (Mou x y) =
-  let  x' = fromIntegral $ (x + ((360 + 15) * 1200)) `mod` (360 * 1200)
-       y' = fromIntegral $ (y + (180 * 1200)) `mod` (180 * 1200)
-  in base34 $ x' * (180 * 1200) + y' + 1*34*34*34*34*34*34
+  let  x' = fromIntegral $ (x + ((360 + 15) * boduNaStupenInt)) `mod` (360 * boduNaStupenInt)
+       y' = fromIntegral $ (y + (180 * boduNaStupenInt)) `mod` (180 * boduNaStupenInt)
+  in base34 $ x' * (180 * boduNaStupen) + y' + 1*34*34*34*34*34*34
 
-ee x y = mouToId $ Mou (x * 1200) (y * 1200)
+ee x y = mouToId $ Mou (x * boduNaStupenInt) (y * boduNaStupenInt)
 
 mousToId :: [Mou] -> String
 mousToId mous = mouToId $ Mou (ivystr xx mous) (ivystr yy mous) 
