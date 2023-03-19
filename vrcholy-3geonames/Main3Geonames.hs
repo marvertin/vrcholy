@@ -6,7 +6,7 @@ import Lib
 import Nacitac
 import Zapisovac
 import Hledac
-import Potopa
+import PotopaStara
 import Uzemi
 import VrchTypy
 import PripravaVstupu

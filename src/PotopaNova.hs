@@ -1,8 +1,7 @@
-module Potopa
+module PotopaNova
     ( 
       potopaSveta,
       potopaSvetaZBodu,
-      zarovnej,
     ) where
 
 import Lib
