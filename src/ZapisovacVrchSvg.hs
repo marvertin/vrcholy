@@ -46,8 +46,13 @@ polomerBodu = 0.5
 
 vrchSvg :: [Vrch] -> String
 vrchSvg vrchy = (unpack . toStrict . renderText)  $ svg (
-     coord3vteriny (obrysRepubliky <> brenskyObdelnik <> svgPoints (map vrVrchol vrchy) <> domácíBod)
-     <> proužek <> rámeček
+     coord3vteriny (obrysRepubliky 
+             <> brenskyObdelnik
+             <> spojniceDvouKopcus (map (\x -> (vrVrchol x, vrKlicoveSedlo x)) vrchy) 
+             <> spojniceDvouKopcus (map (\x -> (vrKlicoveSedlo x, vrMaterskeVrcholy x)) vrchy) 
+             <> svgPoints (map vrVrchol vrchy) 
+             <> domácíBod
+          ) <> proužek <> rámeček
   )
 
 -- Vykreslení celého swg, především obálky. Parametrem je obsah, který se má vykresluit.
@@ -67,6 +72,15 @@ svgPoint (Kopec mnm (Moustrov (mou : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt 
 svgPoints :: [Kopec] -> Element
 svgPoints = mconcat . map svgPoint 
 
+spojniceDvouKopcu :: Kopec -> Kopec -> Element
+spojniceDvouKopcu (Kopec _ (Moustrov (mou1 : _))) (Kopec _ (Moustrov (mou2 : _)))
+             = line_ [X1_<<- txt x1, X2_ <<- txt x2, Y1_ <<- txt y1, Y2_ <<- txt y2, Stroke_ <<- "black", Stroke_width_ <<- "0.1"]
+        where 
+           (x1, y1) = mouToKm mou1
+           (x2, y2) = mouToKm mou2
+
+spojniceDvouKopcus :: [(Kopec, Kopec)] -> Element
+spojniceDvouKopcus = mconcat . map (uncurry spojniceDvouKopcu)
 
 -------------------------------------------------------------------
 -- Další objekty na mapě
