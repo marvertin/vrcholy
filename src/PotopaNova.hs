@@ -13,162 +13,137 @@ import Data.Maybe
 import Data.Tuple
 import Debug.Trace
 
-import qualified Data.Map.Lazy as M
+import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 
-type Hladka = (Mnm, [Moustrov])
 
--- Bod behem hledání prominence (Bod OStrovni)
-data Bost = 
-    Kraj -- bod je okrajovým vnitřím bodem ostrova, jenž byl redukován kvůli výkonnosti
-  | Pobrezi -- právě přidaný bod, který právě vylezl na hladinu
-  | Bost Hladka-- nejvyšší vrcholy ostrova, kte kterému Bost přísluší
-  -- deriving (Read)
+-- Místo je pozoce na mapě spolu s nadmořskou výškou
+-- Řadíme nejprve dle nadmořské výšky, pak už je to jedno, podle které souřadnice
+data Misto = Misto Mnm Mou 
+  deriving (Read, Show, Eq, Ord)
 
-jeKraj :: Bost -> Bool
-jeKraj Kraj = True
-jeKraj _ = False
+-- Místo nebo okraj. Myšleno vnitřní okraj. Tato možnsot je zde kvůli optimalizaci, aby
+--    se tak rychle nespotřebobábala paměť. Jak se ostrovy vynořují, tak vnitřní nebudou potřeba,
+--    proto si držímě vnitřní kraj a jak se ostro vynořuje, kraj je stlá více uvnitř ostrova a zaniká.
+--    Víme totiž, že každý bod přijde práv jendnou, tskže nic sousedního nebude.
+data Miskraj = Miskraj Misto | Okraj
+   deriving (Read, Show)
 
-instance Show Bost where
-   show Kraj = "."
-   show Pobrezi = "_"
-   show _ = "*"
+-- Stav v průbehu výpočtu včetně cílového stavu
+--   1. Síť vrcholů, které již vstoupily do sytému Ukazují na svůj "mateřský vrchol", dáli se tomu tak říct, když to nejsou vrcholy.
+--      V průběhu zaplavování ukazují na nejvyšší bod ostrova v okamžiku, kdy se toto místo vynořilo nad hladinu.
+--      Při shodnosti bodů je to jeden z nich.
+--   2. Mapa vrcvholů na své mateřské vrcholy, průběžně se tak buduje pmocí mapy strom (hodnota je dále klíčem atd.)
+--      V mapě jsou v klíčích vrcholy, pro které již byl objeven mateřský vrchol, byly tedy začleněny do stromu.
+--      Ukládají se sem vrcholy bez ohledu na prominenci. Někdy dokonce může jít jen o spočinek.
+--   3. Mapa vrcholů na jejich klíčová sedla. Opět jsou v mapě jen vrcholy u kterých bylo nalezeno klíčové sedlo,
+--      což je vždy, když byl také nalezen mateřský vrchol. Ukládají se sem však jen vrcholy s dostatečnou prominencí.
+-- Na začátku jsou všechny mapy prázdné, na konci:
+--   * je první mapa k ničemu. Měl by tam být jen obrys zpracovávaného území.
+--   * třetí mapa má v klíči seznam prominentních vrcholů kromě Sněžky.
+--   * druhá mapa obsahuje v klíči všechny vrcholy, kromě Sněžky. Sněžku je zde nutné
+--     vyhledat v hodnotách, tak, že se najde rchol, který je v hodnotách a není v klíči.
+--  (To všechno platí, když je zpracovávaná oblast souvislá)
+data Stav = Stav (Sit0 Miskraj) (M.Map Misto Misto) (M.Map Misto Misto)
+    deriving (Read, Show)
 
 
-jeBost :: Bost -> Bool
-jeBost (Bost _) = True
-jeBost _ = False
 
-bost2vrch :: Bost -> Hladka
-bost2vrch (Bost vrch) = vrch
-bost2vrch x = error $ "nelez ziskat vrchol z " ++ (show x)
-   
+-- ----------------------------------------------------
 
----------------------------------------------------------------------------------
---  Upouštění vody po potopě světa a postupné zaplavování
+-- Připrdne místo nové místo di stavu a vyrobí příští stav.
+--  Musí se přidávat místa od nejvyšší po nejnižší nadmořskou výšku, každé
+--   přidáme právě jednou a musí tvořit uzavřenou oblast, třeba obdélník, ale může být i nepravidelná.
+priprdni :: Misto -> Stav -> Stav
+priprdni misto@(Misto mnm mou@(Mou x y)) (Stav sit mater klised) =
+   let  okolky = nekrajf (okoli0 sit mou)  -- Vše, co je okolo
+   in case (okolky) of
+        [] -> Stav (insertToSit misto) mater klised               -- Kolem nic, noří se vrchol nového ostrova
+        [jeden] -> optim mou $ Stav (insertToSit jeden) mater klised  -- Jeden soused, přidá se tedy k tomuto ostrobu
+        vice@(prvni : _) -> 
+           let (nejvyssi: zbytek) = reverse (samostatneMaterske mater vice)
+               vlozDoMap mistecko mapa = (foldr ((flip M.insert) mistecko) mapa zbytek) 
+           in optim mou $ Stav (insertToSit prvni) (vlozDoMap nejvyssi mater) (vlozDoMap misto klised)
+    where 
+       insertToSit misto = M.insert mou (Miskraj misto) sit
+
+-- Seznam je zaručeně neprázdný
+materuj :: [Misto] -> M.Map Misto Misto -> M.Map Misto Misto
+materuj mista mater = 
+  case  reverse (samostatneMaterske mater mista) of -- Samostatné kopce od nejvyššího po nejnižší
+    [] -> mater -- pro úplnost, to by nemělo ale nastat
+    [_] -> mater -- jeden prvek bude velmi častý, což znamená, že jen přidáváme ke stávajícímu ostrovu a nespojujeme (nemuselo by být, zpracoval by další řádek, ale je to názornější)
+    (nejvyssi: zbytek) -> foldr ((flip M.insert) nejvyssi) mater zbytek -- tady dochází ke spojení ostrovů, čímž vlastně vnikají vrcholy
+      
+-- Vyhledá zatím osamocené mateřské vrcholy dosažitelné ze zadaných, možná i duplicitních vrcholů
+-- 1. paramter je mapa v níž je uložen vlatně les již nalezených vrcholů. Klíčem je vždy vrchol, a hodnotou jeho nalezený mateřský vrchol.
+--    Některý vrchol doposud nateřský nemá, tak pro ten klíč není v mapě nic.
+--    Aby se algortimus nezacykly musí to být orpavdu strom = (bez cyklů v grafu
+--  2. Parametr je seznam výchozích vrcholů z nichž mateřské hledáme, nemusí a mnohdy ani nebudou zatím ve stromu.
 --
-type Sitbo = Sit0 Bost
+-- Na místě "m" bude Misto, obecne je to zde proto ,aby se dal jednoduše udělat test této medoy s čísli.
+
+samostatneMaterske :: (Eq m, Ord m) => M.Map m m -> [m] -> [m]
+samostatneMaterske mater mistList =  samostatneMaterske' (S.fromList mistList) -- Převodem na množinu zmizela velmi pravděpodobně duplicitní místa, nejčastěji zůstne dokonc jen jedno, to  bude ve stavu, když se nespojují ostrovy
+  where
+    samostatneMaterske' mista = -- S.Set m -> [m]
+         case S.lookupMin mista of
+            Nothing -> []
+            (Just nejmensi) ->
+              let zmensenaMista = S.delete nejmensi mista
+              in case M.lookup nejmensi mater of
+                  Nothing -> (nejmensi : samostatneMaterske' zmensenaMista) -- Našel jsem zaím nejvyšší maeřský, tak bude ve výsledku a na zbytek použijeme tutéž funkci
+                  Just vyssi ->  samostatneMaterske' (S.insert vyssi zmensenaMista)
+
+
+optim :: Mou -> Stav -> Stav   
+optim _ = id
+
+
+nekraj :: Miskraj -> Misto
+nekraj (Miskraj misto) = misto
+
+nekrajf :: [Miskraj] -> [Misto]
+nekrajf = map nekraj 
+---------------------------------------------------
+
+mapolist = [(10,20), (11,20), (20,30), (12,22), (13,22), (14,22), (22,30), (15,25), (16,26), (26,36), (36,46), (17,27), (18,27)]
+mt1 = M.fromList mapolist
+
+---------------------------------------------------
 
 potopaSvetaZBodu :: Mnm -> [Bod] -> [Vrch]
-potopaSvetaZBodu minimalniPromnence  body = potopaSveta minimalniPromnence (rozhladinuj body)
+potopaSvetaZBodu minimalniPromnence  body = []
 
+inicialniStav = Stav M.empty M.empty M.empty
 
 potopaSveta :: Mnm -> [Hladina] -> [Vrch]
-potopaSveta minimalniProminence hladiny = potopaSveta' M.empty hladiny
- where
-  potopaSveta' :: Sitbo -> [Hladina] -> [Vrch]
-  potopaSveta' _ [] = []
-  potopaSveta' sit (hla : hlaRest) = 
-      let
-        
-        (sitNova, vrcholyHladiny) = vyresUroven (sit `M.union` (hladinaToSit hla)) (snd hla)
-        vrcholySpodnejsich = potopaSveta' sitNova hlaRest
-      in vrcholyHladiny ++ vrcholySpodnejsich
-    where
-      -- vstupem je 
-      --    1. síť ostrovů po ustoupení vody o 1 metr, kdy se právě vynořilo "Pobrezi" ještě bez vrcholů
-      --    2. nadmořská výška pobřeží
-      -- výstupem je:
-      --    1. síť upravená tak, že pobřeží získá svůj vrch na svých ostrovech a ntitřky jsou kvůli optimalizaci vymazané
-      --       Tato síť neobdsahuje žádné Pobrezi, bude však obsahovat Kraj
-      --    2. seznam vrcholů, které se staly vrcholy ostrovů právě spojených s ostrovem s vyšším vrcholem
-      vyresUroven :: Sitbo -> Mnm -> (Sitbo, [Vrch])
-      vyresUroven sit mnmVody = 
-        let ostrovy = ( rozdelNaOstrovy sit)
-            vysl@(sit2, vrycholy) = foldl accumOstrov (M.empty, []) ostrovy
-            zprava = "Hladina: " ++ show mnmVody ++ "   ostrovu: " ++  (show.length) ostrovy ++ "  sit: " ++ (show.M.size) sit ++ " ==> " ++ (show.M.size) sit2 ++ "  vrcholy: " ++ (show.length) vrycholy
-        in trace zprava vysl
-          where
-            accumOstrov :: (Sitbo, [Vrch]) -> Sitbo -> (Sitbo, [Vrch])
-            accumOstrov (accumSit, accumVrcholy) ostrov =
-              let (ostrovSit, ostrovVrcholy) = vyresOstrov ostrov mnmVody
-              in (accumSit `M.union` ostrovSit, ostrovVrcholy ++ accumVrcholy)
+potopaSveta minimalniProminence hladiny =
+       sort $ convertNaStare minimalniProminence $ foldr priprdniHladinu inicialniStav (reverse hladiny)
 
-      -- Totéž co vyresUroven, ale resi pro jeden ostrov
-      vyresOstrov :: Sitbo -> Mnm -> (Sitbo, [Vrch])  
-      vyresOstrov sit mnmVody = 
-        let
-            -- Podostrovy rekonstruují původní ostrovy, je jich přesně tolik, kolik ostrovů se právě spojilo. 
-            --   Klíčem je hladina nejvyšších vrcholů původních ostrovů. Pokud se právě spojilo
-            --      více stejně vysokých ostrovů, je v klíči více moustrovů se stejnou výškou
-            --   Hodnotou je množina souřadnic ostrova (vlastně jsout to jen jeho okraje)
-            podostrovyMapa :: M.Map Hladka [Mou]
-            podostrovyMapa = grupuj (bost2vrch . snd) fst $ filter (jeBost . snd) (M.toList sit)
+priprdniHladinu :: Hladina -> Stav -> Stav
+priprdniHladinu (mous, mnmVody) stav@(Stav sit mater klised) =
+  let zprava = "Hladinarza: " ++ show mnmVody ++ " mnm " ++ (show . length) mous ++ " | sit: " ++  (show . M.size) sit ++ " mater: " ++  (show . M.size) mater ++ " klised: " ++  (show . M.size) klised
+  in  foldr priprdni (trace zprava stav) (map (Misto mnmVody) mous)
 
-            -- Tdy jsou podostrovy jako seznam
-            podostrovy :: [(Mnm, [Moustrov], [Mou])] -- nadmořská výška vrcholů, seznam vrcholů o této výšce, okrajové body ostrova
-            podostrovy = map (\ ((mnm, vrchy), okraje) -> (mnm, vrchy, okraje) ) . M.toList $ podostrovyMapa
-            
-            pobrezi = M.keys $ M.filter (not . jeBost) sit
+convertNaStare :: Mnm -> Stav -> [Vrch]
+convertNaStare minimalniProminence (Stav _ mater klised) =
+     
+     map prevedNaVrch
+     $ filter jeMinimalniProminence -- filtrovat jen vrcholy s minimální prominencí
+     (M.toList klised)
+   where 
+      prevedNaVrch (vrchol, sedlo) = Vrch {
+            vrVrchol = misto2kopec vrchol,
+            vrKlicoveSedlo = misto2kopec sedlo,
+            vrMaterskeVrcholy = misto2kopec $ fromJust $ M.lookup vrchol mater
+          }
 
-            in if null podostrovy then
-                    let 
-                        -- vynoření špiček ostrova, stávají se základem ostrova a později nejvyšším vrcholem
-                        vrnci = Moustrov $ M.keys sit
-                        novaSit = M.map (const $ Bost (mnmVody, [vrnci]))  sit
-                    in (novaSit, [])
-                else    
-                    
-                    let 
-                        maximMnm = fst3 (maximum podostrovy) -- spoléháme na to, že výška je na prvním místě
-                        (nejvyssi, nizsi) = partition (\q -> fst3 q == maximMnm) podostrovy
-                        sloucenyNejvyssi = (maximMnm, nejvyssi >>= snd3)
-
-                        materskyVrchol = Kopec maximMnm ((head.snd3.head) nejvyssi) -- je to libovolny z tech vyččích vrcholů
-
-                        ostruvky = map (\ ( (mnm, vrcholy, okraje)  : zbytekOstrovu)  ->
-                                (mnm, vrcholy, nejkratsiSpoj okraje pobrezi (zbytekOstrovu ++ nejvyssi >>= thr3) )
-                            ) . filter (\ ((vyska, _, _) : _) -> vyska - mnmVody > minimalniProminence) $ -- filtrujeme aspon trochu prominentni
-                              (kazdyPrvekAZbytky nizsi)
-                        
-                        novaSit = zarovnej sloucenyNejvyssi sit -- to bude nejvyšší bod ostrova
-                        vrcholx = najdiVrcholx ostruvky materskyVrchol
-                    in (novaSit, vrcholx) 
-
-        where
-            -- dostavame cely ostruvek s výškoku, vrcholkama a nejvyšším sedlem
-            najdiVrcholx :: [(Mnm, [Moustrov], Moustrov)] -> Kopec -> [Vrch]
-            najdiVrcholx ostruvky materskyVrchol = 
-                let 
-                  kopecky = zOstruvkuKopecky ostruvky
-                in  map (\(kopecek, klicoveSedlo) ->  Vrch {vrVrchol = kopecek,
-                                                            vrKlicoveSedlo = Kopec mnmVody klicoveSedlo, 
-                                                            vrMaterskeVrcholy = materskyVrchol }) kopecky
-
-zOstruvkuKopecky :: [(Mnm, [Moustrov], Moustrov)] -> [(Kopec, Moustrov)]
-zOstruvkuKopecky ostruvky = ostruvky >>= (\ (mnm, vrcholky, klicoveSedlo)  ->  map  (\kopec ->  (Kopec mnm kopec, klicoveSedlo) ) vrcholky) 
+      jeMinimalniProminence ((Misto vyskaVrcholu _), (Misto vyskaSedla _)) = vyskaVrcholu >= vyskaSedla + minimalniProminence
 
 
-zarovnej :: Hladka -> Sitbo ->  Sitbo
-zarovnej vrchol sit = 
-      let sit2 = M.mapWithKey (nahradVnitrni sit) sit  
-      in M.map nahradVrchol . M.filterWithKey (filtrujKraje sit2) $ sit2
-    where
-
-      nahradVnitrni :: Sitbo -> Mou -> Bost -> Bost
-      nahradVnitrni _ _ Kraj = Kraj  -- kraje necháváme, je to optimalizace at nehledáme zbytečně
-      nahradVnitrni sit1 mou bost
-        | all (flip M.member sit1) . okoliMou $ mou = Kraj
-        | otherwise = bost
-      
-      filtrujKraje :: Sitbo -> Mou -> Bost -> Bool
-      filtrujKraje sit2 mou Kraj = not . (all jeKraj) . catMaybes . map (flip M.lookup sit2) . okoliMou $ mou
-      filtrujKraje _ _ _ = True
-
-      nahradVrchol :: Bost -> Bost
-      nahradVrchol Kraj = Kraj
-      nahradVrchol _  = Bost vrchol
+misto2kopec :: Misto -> Kopec
+misto2kopec (Misto mnm mou) = Kopec mnm (Moustrov [mou])
 
 
-
-hladinaToSit :: Hladina -> Sitbo
-hladinaToSit hladina = M.fromList (map (\mou -> (mou, Pobrezi)) (fst hladina)  )
-
--- rozdělí celou síť na hladiny
-rozhladinuj :: [Bod] -> [Hladina]
-rozhladinuj = reverse . map swap . M.toList . grupuj snd fst 
-
-
-
-
-
+-- zprava = "Hladina: " ++ show mnmVody ++ "   ostrovu: " ++  (show.length) ostrovy ++ "  sit: " ++ (show.M.size) sit ++ " ==> " ++ (show.M.size) sit2 ++ "  vrcholy: " ++ (show.length) vrycholy

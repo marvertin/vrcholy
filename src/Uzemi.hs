@@ -5,7 +5,7 @@
 -- Souřadnice bodu po třech vteřinách (0,0) odpovídá N0 E0
 module Uzemi
     (  Mou(..), Sit0, Moustrov(..),
-      (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy,
+      (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy, okoli0,
       nejkratsiSpoj
     ) where
 
@@ -29,7 +29,7 @@ newtype Moustrov = Moustrov [Mou]
   deriving (Eq, Ord, Show, Read)
 
 -- Z nějaké sítě a daného bodu vyvere okolí tohoto bodu (bez něj)
--- ale jen ty, které jsou dané síti 
+-- ale jen ty, které jsou v dané síti 
 okoli0 :: Sit0 a -> Mou -> [a]
 okoli0 sit bod = catMaybes $ map dej0 (okoliMou bod) 
   where

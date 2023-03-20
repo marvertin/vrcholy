@@ -50,11 +50,11 @@ bost2vrch x = error $ "nelez ziskat vrchol z " ++ (show x)
 type Sitbo = Sit0 Bost
 
 potopaSvetaZBodu :: Mnm -> [Bod] -> [Vrch]
-potopaSvetaZBodu minimalniPromnence  body = potopaSveta minimalniPromnence (rozhladinuj body)
+potopaSvetaZBodu minimalniPromnence  body = sort $ potopaSveta minimalniPromnence (rozhladinuj body)
 
 
 potopaSveta :: Mnm -> [Hladina] -> [Vrch]
-potopaSveta minimalniProminence hladiny = potopaSveta' M.empty hladiny
+potopaSveta minimalniProminence hladiny =  sort $ potopaSveta' M.empty hladiny
  where
   potopaSveta' :: Sitbo -> [Hladina] -> [Vrch]
   potopaSveta' _ [] = []
