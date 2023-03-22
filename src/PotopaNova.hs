@@ -1,7 +1,12 @@
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module PotopaNova
     ( 
       potopaSveta,
       potopaSvetaZBodu,
+      xxx, kus, unique
     ) where
 
 import Lib
@@ -12,6 +17,9 @@ import Data.List
 import Data.Maybe
 import Data.Tuple
 import Debug.Trace
+
+import Data.String.Interpolate ( i )
+import Text.Printf (printf)
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
@@ -45,8 +53,21 @@ data Miskraj = Miskraj Misto | Okraj
 --     vyhledat v hodnotách, tak, že se najde rchol, který je v hodnotách a není v klíči.
 --  (To všechno platí, když je zpracovávaná oblast souvislá)
 data Stav = Stav (Sit0 Miskraj) (M.Map Misto Misto) (M.Map Misto Misto)
+    deriving (Read)
+
+
+data DebugObsah = NIC_ | KRAJ | VRCH
     deriving (Read, Show)
 
+debugMiskraj :: Maybe Miskraj -> DebugObsah
+debugMiskraj Nothing = NIC_
+debugMiskraj (Just Okraj) = KRAJ
+debugMiskraj (Just (Miskraj _)) = VRCH
+
+debugOkoli :: (Sit0 Miskraj) -> Mou -> [(Mou, DebugObsah)]
+debugOkoli sit mou =
+   let okoli = okoliMou mou
+   in  map (\m -> (m, debugMiskraj (M.lookup m sit))  ) okoli
 
 
 -- ----------------------------------------------------
@@ -54,27 +75,23 @@ data Stav = Stav (Sit0 Miskraj) (M.Map Misto Misto) (M.Map Misto Misto)
 -- Připrdne místo nové místo di stavu a vyrobí příští stav.
 --  Musí se přidávat místa od nejvyšší po nejnižší nadmořskou výšku, každé
 --   přidáme právě jednou a musí tvořit uzavřenou oblast, třeba obdélník, ale může být i nepravidelná.
-priprdni :: Misto -> Stav -> Stav
-priprdni misto@(Misto mnm mou@(Mou x y)) (Stav sit mater klised) =
-   let  okolky = nekrajf (okoli0 sit mou)  -- Vše, co je okolo
-   in case (okolky) of
+priprdni :: Int -> Misto -> Stav -> Stav
+priprdni minimalniProminence misto@(Misto mnm mou@(Mou x y)) (Stav sit mater klised) =
+    let 
+        okolky = nekrajf $ okoli0 sit mou  -- Vše, co je okolo
+    in case (okolky) of
         [] -> Stav (insertToSit misto) mater klised               -- Kolem nic, noří se vrchol nového ostrova
-        [jeden] -> optim mou $ Stav (insertToSit jeden) mater klised  -- Jeden soused, přidá se tedy k tomuto ostrobu
+        [jeden] -> Stav (insertToSit jeden) mater klised  -- Jeden soused, přidá se tedy k tomuto ostrobu
         vice@(prvni : _) -> 
            let (nejvyssi: zbytek) = reverse (samostatneMaterske mater vice)
-               vlozDoMap mistecko mapa = (foldr ((flip M.insert) mistecko) mapa zbytek) 
-           in optim mou $ Stav (insertToSit prvni) (vlozDoMap nejvyssi mater) (vlozDoMap misto klised)
+               vlozDoMap mistecko ktere mapa = (foldr ((flip M.insert) mistecko) mapa ktere) 
+           in Stav (insertToSit prvni) (vlozDoMap nejvyssi zbytek mater) (vlozDoMap misto (filter jeDostProminentni zbytek) klised)
     where 
+       --insertToSit misto = optimPromemOkoliNaOkrajeKDyzJsouUzZvnitr mou $ M.insert mou (Miskraj misto) sit
        insertToSit misto = M.insert mou (Miskraj misto) sit
+       jeDostProminentni (Misto mnmVrcholu _) = mnmVrcholu >= mnm + minimalniProminence
 
--- Seznam je zaručeně neprázdný
-materuj :: [Misto] -> M.Map Misto Misto -> M.Map Misto Misto
-materuj mista mater = 
-  case  reverse (samostatneMaterske mater mista) of -- Samostatné kopce od nejvyššího po nejnižší
-    [] -> mater -- pro úplnost, to by nemělo ale nastat
-    [_] -> mater -- jeden prvek bude velmi častý, což znamená, že jen přidáváme ke stávajícímu ostrovu a nespojujeme (nemuselo by být, zpracoval by další řádek, ale je to názornější)
-    (nejvyssi: zbytek) -> foldr ((flip M.insert) nejvyssi) mater zbytek -- tady dochází ke spojení ostrovů, čímž vlastně vnikají vrcholy
-      
+
 -- Vyhledá zatím osamocené mateřské vrcholy dosažitelné ze zadaných, možná i duplicitních vrcholů
 -- 1. paramter je mapa v níž je uložen vlatně les již nalezených vrcholů. Klíčem je vždy vrchol, a hodnotou jeho nalezený mateřský vrchol.
 --    Některý vrchol doposud nateřský nemá, tak pro ten klíč není v mapě nic.
@@ -96,15 +113,61 @@ samostatneMaterske mater mistList =  samostatneMaterske' (S.fromList mistList) -
                   Just vyssi ->  samostatneMaterske' (S.insert vyssi zmensenaMista)
 
 
-optim :: Mou -> Stav -> Stav   
-optim _ = id
-
 
 nekraj :: Miskraj -> Misto
 nekraj (Miskraj misto) = misto
+nekraj Okraj = error "Je tam OKRAJ!!!"
 
 nekrajf :: [Miskraj] -> [Misto]
-nekrajf = map nekraj 
+nekrajf mista =  if any jeKraj mista then error ("Je tam Okraj: " ++ show mista)
+                                     else map nekraj mista
+
+----------------------------------------------------------------------------------------
+
+
+optimPromemOkoliNaOkrajeKDyzJsouUzZvnitr :: Mou -> (Sit0 Miskraj) -> (Sit0 Miskraj) 
+optimPromemOkoliNaOkrajeKDyzJsouUzZvnitr mou sit =
+     let okolicko = okoliMou mou :: [Mou]
+         okolickoRozsirene = if length okolicko == 8 then (mou : okolicko) else okolicko -- Případ, kdy je obklopeno vše u vkládaného je vzácný, proto speciálně ošetřen
+     in foldr optimPromemNaOkrajKdyzCelaObklopena sit okolickoRozsirene 
+
+
+
+-- Pokud je daná buňka zcela obklopena ímkoli (ale neprázdné), promění ji na okraj
+-- a pak smaže všechny okraje v okolí obklopené jen okraji
+optimPromemNaOkrajKdyzCelaObklopena :: Mou -> (Sit0 Miskraj) -> (Sit0 Miskraj)
+optimPromemNaOkrajKdyzCelaObklopena mou sit =
+     let okolicko = okoliMou mou :: [Mou]
+     in
+        if not (any isNothing $ map (flip M.lookup sit) okolicko)  then  -- všechno v okolí je zabráno
+            let jenOkrajeVOkoli = filter (jeKrajXY sit) okolicko
+            in foldr optimSmazKdyzJenMeziOkraji (M.adjust (const Okraj) mou sit) (mou : jenOkrajeVOkoli) -- také centrální právě předělána se může vyskytnout mezi okraji
+        else sit
+    
+
+-- Pokud je buňka mezi samými okraji nebo ničím, bude smazána. A bez ohledu na její obsah či existenci.
+optimSmazKdyzJenMeziOkraji :: Mou -> (Sit0 Miskraj) -> (Sit0 Miskraj)
+optimSmazKdyzJenMeziOkraji mou sit = 
+    if all jeKraj (okoli0 sit mou) then M.delete mou sit
+                                   else sit 
+
+dejMou :: Miskraj -> Mou
+dejMou (Miskraj (Misto _ mou) ) = mou
+
+jeKrajXY ::  (Sit0 Miskraj) -> Mou -> Bool
+jeKrajXY sit mou =  case M.lookup mou sit of 
+                        Nothing -> False
+                        Just Okraj -> False
+                        _ -> True
+
+jeKraj :: Miskraj -> Bool
+jeKraj Okraj = True
+jeKraj _ = False
+
+jeMisto :: Miskraj -> Bool
+jeMisto (Miskraj _)  = True
+jeMisto _ = False
+
 ---------------------------------------------------
 
 mapolist = [(10,20), (11,20), (20,30), (12,22), (13,22), (14,22), (22,30), (15,25), (16,26), (26,36), (36,46), (17,27), (18,27)]
@@ -119,19 +182,29 @@ inicialniStav = Stav M.empty M.empty M.empty
 
 potopaSveta :: Mnm -> [Hladina] -> [Vrch]
 potopaSveta minimalniProminence hladiny =
-       sort $ convertNaStare minimalniProminence $ foldr priprdniHladinu inicialniStav (reverse hladiny)
+       sort . convertNaStare . fst $ foldr (priprdniHladinu minimalniProminence) (inicialniStav, 0) (reverse hladiny)
 
-priprdniHladinu :: Hladina -> Stav -> Stav
-priprdniHladinu (mous, mnmVody) stav@(Stav sit mater klised) =
-  let zprava = "Hladinarza: " ++ show mnmVody ++ " mnm " ++ (show . length) mous ++ " | sit: " ++  (show . M.size) sit ++ " mater: " ++  (show . M.size) mater ++ " klised: " ++  (show . M.size) klised
-  in  foldr priprdni (trace zprava stav) (map (Misto mnmVody) mous)
+priprdniHladinu :: Int -> Hladina -> (Stav, Int) -> (Stav, Int)
+priprdniHladinu minimalniProminence (mous, mnmVody) (stav@(Stav sit mater klised), velikostSitePoPosledniOptimalizaci) =
+  let 
+      novyStav@(Stav sit _ _) = foldr (priprdni minimalniProminence) stav (map (Misto mnmVody) mous) 
+      (nekdyOptimalizovanyStav, novaVelikost) = 
+          if (M.size sit > 5 * velikostSitePoPosledniOptimalizaci) 
+             then  let optimalizovanyStav@(Stav sit2 _ _) = optimalizujStav novyStav
+                       kolikratSetreseno = fromIntegral(M.size sit) / fromIntegral(M.size sit2) :: Double
+                   in trace [i|Setreseni site: #{M.size sit} => #{M.size sit2} to je #{kolikratSetreseno} krat|] (optimalizovanyStav, M.size sit2)
+             else (novyStav, velikostSitePoPosledniOptimalizaci)
+      zprava = [i|Hladina: #{mnmVody} mnm #{length mous}  | #{nekdyOptimalizovanyStav} |]
+  in trace zprava (nekdyOptimalizovanyStav, novaVelikost)
 
-convertNaStare :: Mnm -> Stav -> [Vrch]
-convertNaStare minimalniProminence (Stav _ mater klised) =
+instance Show Stav where
+   show (Stav sit mater klised) = [i|#sit= #{M.size sit} #mater=#{M.size mater} #klised=#{M.size klised}|] :: String
+
+
+convertNaStare :: Stav -> [Vrch]
+convertNaStare (Stav _ mater klised) =
      
-     map prevedNaVrch
-     $ filter jeMinimalniProminence -- filtrovat jen vrcholy s minimální prominencí
-     (M.toList klised)
+     map prevedNaVrch (M.toList klised)
    where 
       prevedNaVrch (vrchol, sedlo) = Vrch {
             vrVrchol = misto2kopec vrchol,
@@ -139,11 +212,67 @@ convertNaStare minimalniProminence (Stav _ mater klised) =
             vrMaterskeVrcholy = misto2kopec $ fromJust $ M.lookup vrchol mater
           }
 
-      jeMinimalniProminence ((Misto vyskaVrcholu _), (Misto vyskaSedla _)) = vyskaVrcholu >= vyskaSedla + minimalniProminence
+      
 
 
 misto2kopec :: Misto -> Kopec
 misto2kopec (Misto mnm mou) = Kopec mnm (Moustrov [mou])
 
 
--- zprava = "Hladina: " ++ show mnmVody ++ "   ostrovu: " ++  (show.length) ostrovy ++ "  sit: " ++ (show.M.size) sit ++ " ==> " ++ (show.M.size) sit2 ++ "  vrcholy: " ++ (show.length) vrycholy
+
+-------------------------------------------
+--- Pokus o globálí optimalizaci
+
+--
+-- Vybere ze sezanm,u prvky, které jsou tam v minimálním počtu za sebou.
+-- Pro každou skupin větší nebo rovnou zadanému číslu vybere prvek tvořící skupinu.
+-- Řdí zezadu, nefunguje pro menší nebo rovno 2.
+--   vyberSMinimalneVyskyty 3 "111aabb2222cc333333333d111xyzz444j" = "41321"
+--  
+vyberSMinimalneVyskyty :: (Show a, Eq a) => Int -> [a] -> [a]
+vyberSMinimalneVyskyty _ [] = []
+vyberSMinimalneVyskyty n (prvni: zbytek) = 
+     let (_, _, vysl) = foldl' akum (prvni, 1, []) zbytek
+     in vysl
+  where
+      akum (last, minulyPocet, vysl) x = 
+         if x == last then 
+                           let pocet = minulyPocet + 1
+                           in (last, pocet, if pocet == n then  (last: vysl) else  vysl)
+                      else     
+                            (x, 1, vysl)
+
+unique :: Eq a => [a] -> [a]
+unique [] = []
+unique (x : lx) = (x : unique (dropWhile (==x) lx))
+
+
+majiciPleneObsazeneOkoli :: (Sit0 a) -> [Mou]
+majiciPleneObsazeneOkoli sit = vyberSMinimalneVyskyty 8 $ sort $ M.keys sit >>= okoliMou
+
+nahradObsazeneKrajem :: (Sit0 Miskraj) -> (Sit0 Miskraj) 
+nahradObsazeneKrajem sit = foldr (M.adjust (const Okraj)) sit (majiciPleneObsazeneOkoli sit)
+
+-- Jen tam kde už jsou místa, ale ne kraje
+-- partionMistoOkraj :: (Sit0 Miskraj) -> ([Mou], [Mou])
+-- partionMistoOkraj sit = partition (jeMisto . snd) (M.toList sit)
+
+vymazNesousedniKraje :: (Sit0 Miskraj) -> (Sit0 Miskraj) 
+vymazNesousedniKraje sit = 
+  let 
+      mista = map fst $ filter (jeMisto . snd) (M.toList sit)
+      okoliMist = unique $ sort $ mista >>= okoliMouSeMnou -- okolí míst, ty musí zůstat, pokud tam jsou kraje
+  in M.restrictKeys sit (S.fromList okoliMist)
+
+optimalizuj :: (Sit0 Miskraj) -> (Sit0 Miskraj) 
+optimalizuj = vymazNesousedniKraje . nahradObsazeneKrajem
+
+optimalizujStav :: Stav -> Stav
+optimalizujStav (Stav sit mater klised) = Stav (optimalizuj sit) mater klised
+
+
+mik = Miskraj (Misto 0 (Mou 0 0))
+
+-- kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 3 13, mik), (Mou 4 13, mik), (Mou 6 13, mik)]
+kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 4 13, mik)]
+xxx =  nahradObsazeneKrajem $ kus

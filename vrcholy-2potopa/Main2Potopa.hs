@@ -4,7 +4,7 @@ import Lib
 import Nacitac
 import Zapisovac
 import Hledac
-import PotopaStara
+import PotopaNova
 import Uzemi
 import VrchTypy
 import PripravaVstupu

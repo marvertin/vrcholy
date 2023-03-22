@@ -6,7 +6,7 @@
 module Uzemi
     (  Mou(..), Sit0, Moustrov(..),
       (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy, okoli0,
-      nejkratsiSpoj
+      nejkratsiSpoj, okoliMouSeMnou
     ) where
 
 import qualified Data.Map.Lazy as M 
@@ -34,7 +34,10 @@ okoli0 :: Sit0 a -> Mou -> [a]
 okoli0 sit bod = catMaybes $ map dej0 (okoliMou bod) 
   where
     dej0 mou = M.lookup mou sit
-    
+
+okoliMouSeMnou :: Mou -> [Mou]
+okoliMouSeMnou mou = (mou : okoliMou mou)
+
 
 -- Okolí nějak=ého bodu bez tohoto budu, tedy 8 okolních bodů
 okoliMou :: Mou -> [Mou]
