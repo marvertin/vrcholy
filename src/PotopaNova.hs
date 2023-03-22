@@ -6,7 +6,6 @@ module PotopaNova
     ( 
       potopaSveta,
       potopaSvetaZBodu, vyberSMinimalneVyskyty
-      -- xxx, kus, unique
     ) where
 
 import Lib
@@ -99,21 +98,6 @@ samostatneMaterske mater mistList =  samostatneMaterske' (S.fromList mistList) -
 
 ----------------------------------------------------------------------------------------
 
--- dejMou :: Miskraj -> Mou
--- dejMou (Miskraj (Misto _ mou) ) = mou
-
--- jeKrajXY ::  (Sit0 Miskraj) -> Mou -> Bool
--- jeKrajXY sit mou =  case M.lookup mou sit of 
---                         Nothing -> False
---                         Just Okraj -> False
---                         _ -> True
-
----------------------------------------------------
-
-mapolist = [(10,20), (11,20), (20,30), (12,22), (13,22), (14,22), (22,30), (15,25), (16,26), (26,36), (36,46), (17,27), (18,27)]
-mt1 = M.fromList mapolist
-
----------------------------------------------------
 
 potopaSvetaZBodu :: Mnm -> [Bod] -> [Vrch]
 potopaSvetaZBodu minimalniPromnence  body = []
@@ -122,7 +106,8 @@ inicialniStav = Stav (Optim S.empty 0) M.empty M.empty M.empty
 
 potopaSveta :: Mnm -> [Hladina] -> [Vrch]
 potopaSveta minimalniProminence hladiny =
-       sort . convertNaStare  $ foldr (priprdniHladinu minimalniProminence) inicialniStav (reverse hladiny)
+      let konecnyStav = optimalizujStav $ foldr (priprdniHladinu minimalniProminence) inicialniStav (reverse hladiny) 
+      in  sort . convertNaStare $ trace [i|Konecny optimalizovany stav: #{konecnyStav} |] konecnyStav
 
 priprdniHladinu :: Int -> Hladina -> Stav -> Stav
 priprdniHladinu minimalniProminence (mous, mnmVody) stav@(Stav optim sit mater klised) =
@@ -160,54 +145,45 @@ convertNaStare (Stav _ _ mater klised) =
             vrMaterskeVrcholy = misto2kopec $ fromJust $ M.lookup vrchol mater
           }
 
-      
-
-
 misto2kopec :: Misto -> Kopec
 misto2kopec (Misto mnm mou) = Kopec mnm (Moustrov [mou])
 
 
 
 -------------------------------------------
---- Pokus o globálí optimalizaci
+--- Globální optimalizace
+
+zapnoutOptimalizaci = True
 
 optimalizujStav :: Stav -> Stav
 optimalizujStav (Stav (Optim okraje lastSitSize) sit mater klised) =
+  if zapnoutOptimalizaci then
     let plnky = (M.keysSet  sit) `S.intersection` (majiciPleneObsazeneOkoli okraje sit)  -- To jsou body sítě jejichž okolí je plně obsazené buď bodem nebo okrajem (vnitřním)
         redukovanaSit = sit `M.withoutKeys` plnky               -- Když už má bod obsazeno okolí, není nutné ho uchovávat
         sirsiOkraje = plnky `S.union` okraje                    -- A to co jsme odstranili ze sítě, musíme přidat k vnitřním okrajům a tak je rozšířit
         redukovanaSitSOkolim = S.fromList (M.keys redukovanaSit >>= okoliMouSeMnou) -- JSou to body nové již redukvoané sítě i s okolím. To znamená, že žádný bod, který zde není  se nedostane do blízkosti nové sítě
         posunuteOkraje = sirsiOkraje  `S.intersection` redukovanaSitSOkolim  -- a Stačí zachovat okraje jen ty, které jsou v bezprostřední blískosti sítě pobřeží
     in Stav (Optim posunuteOkraje (M.size redukovanaSit)) redukovanaSit mater klised -- vracíme změnšené věci a teké velikost sítě, kterou jsme takto vytvořili
-
+  else Stav (Optim okraje (M.size sit)) sit mater klised
 --
--- Vybere ze sezanm,u prvky, které jsou tam v minimálním počtu za sebou.
--- Pro každou skupin větší nebo rovnou zadanému číslu vybere prvek tvořící skupinu.
--- Řdí zezadu, nefunguje pro menší nebo rovno 2.
---   vyberSMinimalneVyskyty 3 "111aabb2222cc333333333d111xyzz444j" = "41321"
+-- Vybere ze sezamu prvky, které jsou tam v minimálním počtu za sebou.
+-- Pro každou skupin rovnou zadanému číslu vybere jeden prvek. Pokud je tam skupina vícekrát, vybere prvek vícekrát
+-- Pro jedničku logicky vrátí vstupní string.
+--   vyberSMinimalneVyskyty 0 "111aabb2222cc333333333d111xyzz444j" = "1233314"
 --  
+
 vyberSMinimalneVyskyty :: (Show a, Eq a) => Int -> [a] -> [a]
 vyberSMinimalneVyskyty _ [] = []
-vyberSMinimalneVyskyty n (prvni: zbytek) = 
-     let (_, _, vysl) = foldl' akum (prvni, 1, []) zbytek
-     in vysl
+vyberSMinimalneVyskyty n (prvni: zbytek) =  vyber (n - 1) prvni zbytek
   where
-      akum (last, minulyPocet, vysl) x = 
-         if x == last then 
-                           let pocet = minulyPocet + 1
-                           in (last, pocet, if pocet == n then  (last: vysl) else  vysl)
-                      else     
-                            (x, 1, vysl)
+     -- vyber :: Int -> a -> [a] -> [a]  -- Kolik ještě musí být -> těchto prvků -> v tomto seznamu -> výsledek
+     vyber 0 chteny list = (chteny : vyberSMinimalneVyskyty n list)
+     vyber _ _  [] = []
+     vyber k chteny (prvni : zbytek) =
+        if prvni == chteny then vyber (k - 1) prvni zbytek
+                           else vyber (n - 1) prvni zbytek
 
 -- Jsou to místa, nemusí nutně tam něco být, pro případ díry by tam nebylo nic
 majiciPleneObsazeneOkoli :: (S.Set Mou) -> (Sit0 Misto) -> (S.Set Mou)
-majiciPleneObsazeneOkoli okraje sit = S.fromList . vyberSMinimalneVyskyty 8 . sort $ (M.keys sit ++ S.toList okraje) >>= okoliMou
-
-
-mik = Misto 0 (Mou 0 0)
-
--- kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 3 13, mik), (Mou 4 13, mik), (Mou 6 13, mik)]
---kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 4 13, mik)]
---xxx =  nahradObsazeneKrajem $ kus
-
+majiciPleneObsazeneOkoli okraje sit = S.fromAscList . vyberSMinimalneVyskyty 8 . sort $ (M.keys sit ++ S.toList okraje) >>= okoliMou
 
