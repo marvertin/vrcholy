@@ -5,7 +5,7 @@
 module PotopaNova
     ( 
       potopaSveta,
-      potopaSvetaZBodu,
+      potopaSvetaZBodu, vyberSMinimalneVyskyty
       -- xxx, kus, unique
     ) where
 
@@ -122,20 +122,28 @@ inicialniStav = Stav (Optim S.empty 0) M.empty M.empty M.empty
 
 potopaSveta :: Mnm -> [Hladina] -> [Vrch]
 potopaSveta minimalniProminence hladiny =
-       sort . convertNaStare . fst $ foldr (priprdniHladinu minimalniProminence) (inicialniStav, 0) (reverse hladiny)
+       sort . convertNaStare  $ foldr (priprdniHladinu minimalniProminence) inicialniStav (reverse hladiny)
 
-priprdniHladinu :: Int -> Hladina -> (Stav, Int) -> (Stav, Int)
-priprdniHladinu minimalniProminence (mous, mnmVody) (stav@(Stav optim sit mater klised), velikostSitePoPosledniOptimalizaci) =
+priprdniHladinu :: Int -> Hladina -> Stav -> Stav
+priprdniHladinu minimalniProminence (mous, mnmVody) stav@(Stav optim sit mater klised) =
   let 
-      novyStav@(Stav optim sit _ _) = foldr (priprdni minimalniProminence) stav (map (Misto mnmVody) mous) 
-      (nekdyOptimalizovanyStav, novaVelikost) = 
-          if (M.size sit > 5 * velikostSitePoPosledniOptimalizaci) 
-             then  let optimalizovanyStav@(Stav optim sit2 _ _) = optimalizujStav novyStav
-                       kolikratSetreseno = fromIntegral(M.size sit) / fromIntegral(M.size sit2) :: Double
-                   in trace [i|Setreseni site: #{M.size sit} => #{M.size sit2} to je #{kolikratSetreseno} krat|] (optimalizovanyStav, M.size sit2)
-             else (novyStav, velikostSitePoPosledniOptimalizaci)
+      novyStav = foldr (priprdni minimalniProminence) stav (map (Misto mnmVody) mous) 
+      nekdyOptimalizovanyStav = 
+          if (vyzadujeOptimalizaci novyStav) 
+             then  let optimalizovanyStav = optimalizujStav novyStav
+                       kolikratSetreseno = fromIntegral(velikostSite novyStav) / fromIntegral(velikostSite optimalizovanyStav) :: Double
+                   in trace [i|Setreseni site: #{velikostSite novyStav} => #{velikostSite optimalizovanyStav} to je #{kolikratSetreseno} krat|] 
+                      optimalizovanyStav
+             else novyStav
       zprava = [i|Hladina: #{mnmVody} mnm #{length mous}  | #{nekdyOptimalizovanyStav} |]
-  in trace zprava (nekdyOptimalizovanyStav, novaVelikost)
+  in trace zprava nekdyOptimalizovanyStav
+
+vyzadujeOptimalizaci :: Stav -> Bool
+vyzadujeOptimalizaci (Stav (Optim _ velikostSitePoPosledniOptimalizaci) sit _ _) = M.size sit > 5 * velikostSitePoPosledniOptimalizaci
+
+velikostSite :: Stav -> Int
+velikostSite (Stav _ sit _ _) = M.size sit
+
 
 instance Show Stav where
    show (Stav (Optim okraj lastSitSize) sit mater klised) = [i|#sit= #{M.size sit} #mater=#{M.size mater} #klised=#{M.size klised} #okraj=#{S.size okraj} lastSitSize=#{lastSitSize}|] :: String
