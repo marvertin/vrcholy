@@ -116,18 +116,24 @@ priprdniHladinu minimalniProminence (mous, mnmVody) stav@(Stav optim sit mater k
       nekdyOptimalizovanyStav = 
           if (vyzadujeOptimalizaci novyStav) 
              then  let optimalizovanyStav = optimalizujStav novyStav
-                       kolikratSetreseno = fromIntegral(velikostSite novyStav) / fromIntegral(velikostSite optimalizovanyStav) :: Double
-                   in trace [i|Setreseni site: #{velikostSite novyStav} => #{velikostSite optimalizovanyStav} to je #{kolikratSetreseno} krat|] 
+                       kolikratSetresenoSite = fromIntegral(velikostSite novyStav) / fromIntegral(velikostSite optimalizovanyStav) :: Double
+                       kolikratSetresenoMater = fromIntegral(velikostMater novyStav) / fromIntegral(velikostMater optimalizovanyStav) :: Double
+                       zprava1 = [i|Setreseni site:  #{velikostSite novyStav} => #{velikostSite optimalizovanyStav} to je #{kolikratSetresenoSite} krat |]  :: String
+                       zprava2 = [i|Setreseni mater: #{velikostMater novyStav} => #{velikostMater optimalizovanyStav} to je #{kolikratSetresenoMater} krat |]  :: String
+                   in trace zprava1 . trace zprava2 $
                       optimalizovanyStav
              else novyStav
       zprava = [i|Hladina: #{mnmVody} mnm #{length mous}  | #{nekdyOptimalizovanyStav} |]
   in trace zprava nekdyOptimalizovanyStav
 
 vyzadujeOptimalizaci :: Stav -> Bool
-vyzadujeOptimalizaci (Stav (Optim _ velikostSitePoPosledniOptimalizaci) sit _ _) = M.size sit > 5 * velikostSitePoPosledniOptimalizaci
+vyzadujeOptimalizaci (Stav (Optim _ velikostSitePoPosledniOptimalizaci) sit _ _) = M.size sit > 10 * velikostSitePoPosledniOptimalizaci
 
 velikostSite :: Stav -> Int
 velikostSite (Stav _ sit _ _) = M.size sit
+
+velikostMater :: Stav -> Int
+velikostMater (Stav _ _ mater _) = M.size mater
 
 
 instance Show Stav where
@@ -152,6 +158,8 @@ misto2kopec (Misto mnm mou) = Kopec mnm (Moustrov [mou])
 
 -------------------------------------------
 --- Globální optimalizace
+elemsSet :: Ord a => M.Map k a -> S.Set a
+elemsSet = S.fromList . M.elems
 
 zapnoutOptimalizaci = True
 
@@ -163,8 +171,19 @@ optimalizujStav (Stav (Optim okraje lastSitSize) sit mater klised) =
         sirsiOkraje = plnky `S.union` okraje                    -- A to co jsme odstranili ze sítě, musíme přidat k vnitřním okrajům a tak je rozšířit
         redukovanaSitSOkolim = S.fromList (M.keys redukovanaSit >>= okoliMouSeMnou) -- JSou to body nové již redukvoané sítě i s okolím. To znamená, že žádný bod, který zde není  se nedostane do blízkosti nové sítě
         posunuteOkraje = sirsiOkraje  `S.intersection` redukovanaSitSOkolim  -- a Stačí zachovat okraje jen ty, které jsou v bezprostřední blískosti sítě pobřeží
-    in Stav (Optim posunuteOkraje (M.size redukovanaSit)) redukovanaSit mater klised -- vracíme změnšené věci a teké velikost sítě, kterou jsme takto vytvořili
+        -- Optimalizace stromu mateřských vrcholů, nepotřebujeme ty, které nejsou referenvoány
+        -- redukovaneMater = mater `M.restrictKeys` (elemsSet redukovanaSit `S.union` M.keysSet klised `S.union` elemsSet mater)
+        redukovaneMater = setresCoToDa (elemsSet redukovanaSit `S.union` M.keysSet klised) mater
+
+    in Stav (Optim posunuteOkraje (M.size redukovanaSit)) redukovanaSit redukovaneMater klised -- vracíme změnšené věci a teké velikost sítě, kterou jsme takto vytvořili
   else Stav (Optim okraje (M.size sit)) sit mater klised
+
+setresCoToDa :: Ord a => S.Set a -> M.Map a a -> M.Map a a
+setresCoToDa musiByt mater1 =
+     let mater2 =  mater1 `M.restrictKeys` (musiByt `S.union` elemsSet mater1)
+     in if M.size mater2 < M.size mater1 then setresCoToDa musiByt mater2
+                                         else mater2  
+
 --
 -- Vybere ze sezamu prvky, které jsou tam v minimálním počtu za sebou.
 -- Pro každou skupin rovnou zadanému číslu vybere jeden prvek. Pokud je tam skupina vícekrát, vybere prvek vícekrát
