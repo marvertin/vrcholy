@@ -164,57 +164,42 @@ misto2kopec (Misto mnm mou) = Kopec mnm (Moustrov [mou])
 --- Pokus o globálí optimalizaci
 
 optimalizujStav :: Stav -> Stav
-optimalizujStav = id
--- optimalizujStav (Stav sit mater klised) = Stav (optimalizuj sit) mater klised
+optimalizujStav (Stav (Optim okraje lastSitSize) sit mater klised) =
+    let plnky = (M.keysSet  sit) `S.intersection` (majiciPleneObsazeneOkoli okraje sit)  -- To jsou body sítě jejichž okolí je plně obsazené buď bodem nebo okrajem (vnitřním)
+        redukovanaSit = sit `M.withoutKeys` plnky               -- Když už má bod obsazeno okolí, není nutné ho uchovávat
+        sirsiOkraje = plnky `S.union` okraje                    -- A to co jsme odstranili ze sítě, musíme přidat k vnitřním okrajům a tak je rozšířit
+        redukovanaSitSOkolim = S.fromList (M.keys redukovanaSit >>= okoliMouSeMnou) -- JSou to body nové již redukvoané sítě i s okolím. To znamená, že žádný bod, který zde není  se nedostane do blízkosti nové sítě
+        posunuteOkraje = sirsiOkraje  `S.intersection` redukovanaSitSOkolim  -- a Stačí zachovat okraje jen ty, které jsou v bezprostřední blískosti sítě pobřeží
+    in Stav (Optim posunuteOkraje (M.size redukovanaSit)) redukovanaSit mater klised -- vracíme změnšené věci a teké velikost sítě, kterou jsme takto vytvořili
 
--- --
--- -- Vybere ze sezanm,u prvky, které jsou tam v minimálním počtu za sebou.
--- -- Pro každou skupin větší nebo rovnou zadanému číslu vybere prvek tvořící skupinu.
--- -- Řdí zezadu, nefunguje pro menší nebo rovno 2.
--- --   vyberSMinimalneVyskyty 3 "111aabb2222cc333333333d111xyzz444j" = "41321"
--- --  
--- vyberSMinimalneVyskyty :: (Show a, Eq a) => Int -> [a] -> [a]
--- vyberSMinimalneVyskyty _ [] = []
--- vyberSMinimalneVyskyty n (prvni: zbytek) = 
---      let (_, _, vysl) = foldl' akum (prvni, 1, []) zbytek
---      in vysl
---   where
---       akum (last, minulyPocet, vysl) x = 
---          if x == last then 
---                            let pocet = minulyPocet + 1
---                            in (last, pocet, if pocet == n then  (last: vysl) else  vysl)
---                       else     
---                             (x, 1, vysl)
+--
+-- Vybere ze sezanm,u prvky, které jsou tam v minimálním počtu za sebou.
+-- Pro každou skupin větší nebo rovnou zadanému číslu vybere prvek tvořící skupinu.
+-- Řdí zezadu, nefunguje pro menší nebo rovno 2.
+--   vyberSMinimalneVyskyty 3 "111aabb2222cc333333333d111xyzz444j" = "41321"
+--  
+vyberSMinimalneVyskyty :: (Show a, Eq a) => Int -> [a] -> [a]
+vyberSMinimalneVyskyty _ [] = []
+vyberSMinimalneVyskyty n (prvni: zbytek) = 
+     let (_, _, vysl) = foldl' akum (prvni, 1, []) zbytek
+     in vysl
+  where
+      akum (last, minulyPocet, vysl) x = 
+         if x == last then 
+                           let pocet = minulyPocet + 1
+                           in (last, pocet, if pocet == n then  (last: vysl) else  vysl)
+                      else     
+                            (x, 1, vysl)
 
--- unique :: Eq a => [a] -> [a]
--- unique [] = []
--- unique (x : lx) = (x : unique (dropWhile (==x) lx))
+-- Jsou to místa, nemusí nutně tam něco být, pro případ díry by tam nebylo nic
+majiciPleneObsazeneOkoli :: (S.Set Mou) -> (Sit0 Misto) -> (S.Set Mou)
+majiciPleneObsazeneOkoli okraje sit = S.fromList . vyberSMinimalneVyskyty 8 . sort $ (M.keys sit ++ S.toList okraje) >>= okoliMou
 
 
--- majiciPleneObsazeneOkoli :: (Sit0 a) -> [Mou]
--- majiciPleneObsazeneOkoli sit = vyberSMinimalneVyskyty 8 $ sort $ M.keys sit >>= okoliMou
+mik = Misto 0 (Mou 0 0)
 
--- nahradObsazeneKrajem :: (Sit0 Miskraj) -> (Sit0 Miskraj) 
--- nahradObsazeneKrajem sit = foldr (M.adjust (const Okraj)) sit (majiciPleneObsazeneOkoli sit)
-
--- -- Jen tam kde už jsou místa, ale ne kraje
--- -- partionMistoOkraj :: (Sit0 Miskraj) -> ([Mou], [Mou])
--- -- partionMistoOkraj sit = partition (jeMisto . snd) (M.toList sit)
-
--- vymazNesousedniKraje :: (Sit0 Miskraj) -> (Sit0 Miskraj) 
--- vymazNesousedniKraje sit = 
---   let 
---       mista = map fst $ filter (jeMisto . snd) (M.toList sit)
---       okoliMist = unique $ sort $ mista >>= okoliMouSeMnou -- okolí míst, ty musí zůstat, pokud tam jsou kraje
---   in M.restrictKeys sit (S.fromList okoliMist)
-
--- optimalizuj :: (Sit0 Miskraj) -> (Sit0 Miskraj) 
--- optimalizuj = vymazNesousedniKraje . nahradObsazeneKrajem
-
--- mik = Miskraj (Misto 0 (Mou 0 0))
-
--- -- kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 3 13, mik), (Mou 4 13, mik), (Mou 6 13, mik)]
--- kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 4 13, mik)]
--- xxx =  nahradObsazeneKrajem $ kus
+-- kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 3 13, mik), (Mou 4 13, mik), (Mou 6 13, mik)]
+--kus = M.fromList [(Mou 5 12, mik), (Mou 5 14, mik), (Mou 5 13, mik), (Mou 4 13, mik)]
+--xxx =  nahradObsazeneKrajem $ kus
 
 
