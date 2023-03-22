@@ -204,5 +204,4 @@ vyberSMinimalneVyskyty n (prvni: zbytek) =  vyber (n - 1) prvni zbytek
 
 -- Jsou to místa, nemusí nutně tam něco být, pro případ díry by tam nebylo nic
 majiciPleneObsazeneOkoli :: (S.Set Mou) -> (Sit0 Misto) -> (S.Set Mou)
-majiciPleneObsazeneOkoli okraje sit = S.fromAscList . vyberSMinimalneVyskyty 8 . sort $ (M.keys sit ++ S.toList okraje) >>= okoliMou
-
+majiciPleneObsazeneOkoli okraje sit =  M.keysSet . M.filter (==8) . M.fromListWith (+) . map (\k -> (k, 1)) $ (S.toList okraje ++ M.keys sit) >>= okoliMou
