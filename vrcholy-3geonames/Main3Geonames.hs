@@ -5,8 +5,6 @@ module Main where
 import Lib
 import Nacitac
 import Zapisovac
-import Hledac
-import PotopaStara
 import Uzemi
 import VrchTypy
 import PripravaVstupu
@@ -60,13 +58,13 @@ dotahujGeoNames fileVrcholy dirGeonames = do
     dotahujVse dirGeonames uzDriveNactenaId kopce  
     putStrLn "KONEC geonames"
 
-dotahujVse :: FilePath -> S.Set String -> [(Kotyp, Kopec)] -> IO ()
+dotahujVse :: FilePath -> S.Set String -> [(Kotyp, Misto)] -> IO ()
 dotahujVse  _ _ [] = return ()
 dotahujVse  dirGeonames uzDriveNactene ((kotyp, kopec) : zbytekKopcu) = do
     identif <- dotahniGeoname dirGeonames uzDriveNactene kotyp kopec
     dotahujVse dirGeonames (identif `S.insert` uzDriveNactene) zbytekKopcu
 
-dotahniGeoname :: FilePath -> S.Set String -> Kotyp -> Kopec -> IO (String)
+dotahniGeoname :: FilePath -> S.Set String -> Kotyp -> Misto -> IO (String)
 dotahniGeoname dirGeonames uzDriveNactene kotyp kopec  = do
     let gpsKopec@(GpsKopec _ mnm identif) = kopec2gps kopec
     if identif `S.member` uzDriveNactene then do

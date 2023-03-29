@@ -10,7 +10,7 @@ import Lib
 import Uzemi
 import Gps
 import Control.Arrow
-import VrchTypy(Vrch(..), Kopec(..))
+import VrchTypy(Vrch(..), Misto(..))
 import HraniceCeska
 import Cesko
 import Data.String.Interpolate ( i )
@@ -49,7 +49,7 @@ vrchSvg vrchy = (unpack . toStrict . renderText)  $ svg (
      coord3vteriny (obrysRepubliky 
              <> brenskyObdelnik
              <> spojniceDvouKopcus (map (\x -> (vrVrchol x, vrKlicoveSedlo x)) vrchy) 
-             <> spojniceDvouKopcus (map (\x -> (vrKlicoveSedlo x, vrMaterskeVrcholy x)) vrchy) 
+             <> spojniceDvouKopcus (map (\x -> (vrKlicoveSedlo x, vrMaterskyVrchol x)) vrchy) 
              <> svgPoints (map vrVrchol vrchy) 
              <> domácíBod
           ) <> proužek <> rámeček
@@ -64,22 +64,22 @@ svg content =
 
 -- Vlastní výpočty bodů
 
-svgPoint :: Kopec -> Element
-svgPoint (Kopec mnm (Moustrov (mou : _))) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- txt polomerBodu, Fill_ <<-  škála r]
+svgPoint :: Misto -> Element
+svgPoint (Misto mnm mou) = circle_ [Cx_ <<- txt x, Cy_ <<- txt y, R_ <<- txt polomerBodu, Fill_ <<-  škála r]
   where r =  (max 0 . min 1350) (mnm - 200)
         (x, y) = mouToKm mou
 
-svgPoints :: [Kopec] -> Element
+svgPoints :: [Misto] -> Element
 svgPoints = mconcat . map svgPoint 
 
-spojniceDvouKopcu :: Kopec -> Kopec -> Element
-spojniceDvouKopcu (Kopec _ (Moustrov (mou1 : _))) (Kopec _ (Moustrov (mou2 : _)))
+spojniceDvouKopcu :: Misto -> Misto -> Element
+spojniceDvouKopcu (Misto _ mou1) (Misto _ mou2)
              = line_ [X1_<<- txt x1, X2_ <<- txt x2, Y1_ <<- txt y1, Y2_ <<- txt y2, Stroke_ <<- "black", Stroke_width_ <<- "0.1"]
         where 
            (x1, y1) = mouToKm mou1
            (x2, y2) = mouToKm mou2
 
-spojniceDvouKopcus :: [(Kopec, Kopec)] -> Element
+spojniceDvouKopcus :: [(Misto, Misto)] -> Element
 spojniceDvouKopcus = mconcat . map (uncurry spojniceDvouKopcu)
 
 -------------------------------------------------------------------

@@ -4,9 +4,9 @@
 -- 
 -- Souřadnice bodu po třech vteřinách (0,0) odpovídá N0 E0
 module Uzemi
-    (  Mou(..), Sit0, Moustrov(..),
-      (-:++), okoliMou, rozdelNaOstrovy, vystredMou, addMou, xx, yy, okoli0,
-      nejkratsiSpoj, okoliMouSeMnou
+    (  Mou(..), Sit0,
+      (-:++), okoliMou, okoliMouSeMnou, addMou,
+      xx, yy, okoli0
     ) where
 
 import qualified Data.Map.Lazy as M 
@@ -64,6 +64,9 @@ Mou x y -:++ moul =
 addMou :: Int -> Int -> Mou -> Mou
 addMou dX dY (Mou x y) = Mou (dX + x) (dY + y)
 
+
+------------------------------------------------------------------------------------------------------
+-- Zbytek není exportován, ale může se někdy hodit. Bylo to použito ve starém neefektivním algoritmu.
 
 -- vyrobí bod z neprázdného seznamu, který je nějako uprostřed        
 vystredMou :: [Mou] -> Mou

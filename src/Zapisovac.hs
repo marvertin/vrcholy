@@ -9,7 +9,7 @@ import Lib
 import Uzemi
 import Gps
 import Control.Arrow
-import VrchTypy(Vrch(..), Kopec(..))
+import VrchTypy(Vrch(..))
 import Data.String.Interpolate ( i )
 import Text.Printf (printf)
 import Data.List

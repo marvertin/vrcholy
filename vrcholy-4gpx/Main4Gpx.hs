@@ -5,8 +5,6 @@ module Main where
 import Lib
 import Nacitac
 import Zapisovac
-import Hledac
-import PotopaStara
 import Uzemi
 import VrchTypy
 import PripravaVstupu

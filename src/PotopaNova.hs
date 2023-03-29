@@ -4,17 +4,18 @@
 
 module PotopaNova
     ( 
-      potopaSveta,
-      potopaSvetaZBodu, vyberSMinimalneVyskyty
+      potopaSveta
     ) where
 
 import Lib
-import Uzemi
-import VrchTypy
+import Uzemi (Mou(..), Sit0, okoli0, okoliMou, okoliMouSeMnou)
+import VrchTypy (Mnm, Hladina, Vrch(..), Misto(..))
 
 import Data.List
 import Data.Maybe
 import Data.Tuple
+import Data.Ord
+
 import Debug.Trace
 
 import Data.String.Interpolate ( i )
@@ -24,10 +25,6 @@ import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 
 
--- Místo je pozoce na mapě spolu s nadmořskou výškou
--- Řadíme nejprve dle nadmořské výšky, pak už je to jedno, podle které souřadnice
-data Misto = Misto Mnm Mou 
-  deriving (Read, Show, Eq, Ord)
 
 -- Stav v průbehu výpočtu včetně cílového stavu
 --   1. Síť vrcholů, které již vstoupily do sytému Ukazují na svůj "mateřský vrchol", dáli se tomu tak říct, když to nejsou vrcholy.
@@ -98,16 +95,20 @@ samostatneMaterske mater mistList =  samostatneMaterske' (S.fromList mistList) -
 
 ----------------------------------------------------------------------------------------
 
-
-potopaSvetaZBodu :: Mnm -> [Bod] -> [Vrch]
-potopaSvetaZBodu minimalniPromnence  body = []
-
 inicialniStav = Stav (Optim S.empty 0) M.empty M.empty M.empty
 
-potopaSveta :: Mnm -> [Hladina] -> [Vrch]
+-- 
+-- 
+potopaSveta :: Mnm -> [Hladina] -> [ Vrch ]
 potopaSveta minimalniProminence hladiny =
-      let konecnyStav = optimalizujStav $ foldr (priprdniHladinu minimalniProminence) inicialniStav (reverse hladiny) 
-      in  sort . convertNaStare $ trace [i|Konecny optimalizovany stav: #{konecnyStav} |] konecnyStav
+      let konecnyStav = optimalizujStav $ foldl (flip $ priprdniHladinu minimalniProminence) inicialniStav hladiny
+          (Stav _ _ mater klised) = trace [i|Konecny optimalizovany stav: #{konecnyStav} |] konecnyStav
+      in  sortOn Down $ map  (\ (vrchol, sedlo) -> Vrch { vrVrchol = vrchol, vrKlicoveSedlo = sedlo, vrMaterskyVrchol = (fromJust $ M.lookup vrchol mater) })  (M.toList klised) 
+   where 
+     prevedMisto :: Misto -> (Int, (Int, Int))
+     prevedMisto (Misto mnm (Mou x y )) = (mnm, (x, y))
+
+
 
 priprdniHladinu :: Int -> Hladina -> Stav -> Stav
 priprdniHladinu minimalniProminence (mous, mnmVody) stav@(Stav optim sit mater klised) =
@@ -140,21 +141,6 @@ instance Show Stav where
    show (Stav (Optim okraj lastSitSize) sit mater klised) = [i|#sit= #{M.size sit} #mater=#{M.size mater} #klised=#{M.size klised} #okraj=#{S.size okraj} lastSitSize=#{lastSitSize}|] :: String
 
 
-convertNaStare :: Stav -> [Vrch]
-convertNaStare (Stav _ _ mater klised) =
-     
-     map prevedNaVrch (M.toList klised)
-   where 
-      prevedNaVrch (vrchol, sedlo) = Vrch {
-            vrVrchol = misto2kopec vrchol,
-            vrKlicoveSedlo = misto2kopec sedlo,
-            vrMaterskeVrcholy = misto2kopec $ fromJust $ M.lookup vrchol mater
-          }
-
-misto2kopec :: Misto -> Kopec
-misto2kopec (Misto mnm mou) = Kopec mnm (Moustrov [mou])
-
-
 
 -------------------------------------------
 --- Globální optimalizace
@@ -184,23 +170,6 @@ setresCoToDa musiByt mater1 =
      in if M.size mater2 < M.size mater1 then setresCoToDa musiByt mater2
                                          else mater2  
 
---
--- Vybere ze sezamu prvky, které jsou tam v minimálním počtu za sebou.
--- Pro každou skupin rovnou zadanému číslu vybere jeden prvek. Pokud je tam skupina vícekrát, vybere prvek vícekrát
--- Pro jedničku logicky vrátí vstupní string.
---   vyberSMinimalneVyskyty 0 "111aabb2222cc333333333d111xyzz444j" = "1233314"
---  
-
-vyberSMinimalneVyskyty :: (Show a, Eq a) => Int -> [a] -> [a]
-vyberSMinimalneVyskyty _ [] = []
-vyberSMinimalneVyskyty n (prvni: zbytek) =  vyber (n - 1) prvni zbytek
-  where
-     -- vyber :: Int -> a -> [a] -> [a]  -- Kolik ještě musí být -> těchto prvků -> v tomto seznamu -> výsledek
-     vyber 0 chteny list = (chteny : vyberSMinimalneVyskyty n list)
-     vyber _ _  [] = []
-     vyber k chteny (prvni : zbytek) =
-        if prvni == chteny then vyber (k - 1) prvni zbytek
-                           else vyber (n - 1) prvni zbytek
 
 -- Jsou to místa, nemusí nutně tam něco být, pro případ díry by tam nebylo nic
 majiciPleneObsazeneOkoli :: (S.Set Mou) -> (Sit0 Misto) -> (S.Set Mou)

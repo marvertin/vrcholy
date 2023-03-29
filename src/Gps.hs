@@ -59,12 +59,12 @@ vystred  :: (Mou -> Int) -> [Mou]  -> Double
 vystred _ [] = -1
 vystred fn mous = (sum (map (\mou -> fromIntegral (fn mou) * kvoc) mous)  ) / fromIntegral (length mous)
 
-kopec2gps :: Kopec -> GpsKopec
-kopec2gps (Kopec mnm (Moustrov mous)) = GpsKopec (vystred yy &&& vystred xx $ mous) mnm (mousToId mous)
+kopec2gps :: Misto -> GpsKopec
+kopec2gps (Misto mnm mou) = GpsKopec (vystred yy &&& vystred xx $ [mou]) mnm (mousToId [mou])
 
 vrch2gps :: Vrch -> GpsVrch
-vrch2gps (Vrch { vrVrchol = vrVrchol@(Kopec mnmVrch _), 
-                 vrKlicoveSedlo = vrKlicoveSedlo@(Kopec mnmSedlo _),
-                 vrMaterskeVrcholy } ) =
-                 GpsVrch (mnmVrch - mnmSedlo) (kopec2gps vrVrchol) (kopec2gps vrKlicoveSedlo) (kopec2gps vrMaterskeVrcholy)
+vrch2gps (Vrch { vrVrchol = vrVrchol@(Misto mnmVrch _), 
+                 vrKlicoveSedlo = vrKlicoveSedlo@(Misto mnmSedlo _),
+                 vrMaterskyVrchol } ) =
+                 GpsVrch (mnmVrch - mnmSedlo) (kopec2gps vrVrchol) (kopec2gps vrKlicoveSedlo) (kopec2gps vrMaterskyVrchol)
 
