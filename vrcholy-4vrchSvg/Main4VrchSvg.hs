@@ -12,7 +12,6 @@ import Konst
 import GeonamesParser
 import JsonParser
 import GeonamesIo
-import PrQuadTree
 
 import qualified Data.Text as T
 import System.FilePath.Posix
