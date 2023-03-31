@@ -22,11 +22,14 @@ import Data.Maybe
 import Data.Text (Text, pack, unpack)
 import Data.Text.Lazy (toStrict)
 import Data.Colour
+import Data.Ord
 import Graphics.Svg
 import Graphics.Svg.Core
 import Numeric (showHex, showIntAtBase)
 import Text.Printf (printf)
 import Data.String.Interpolate ( i )
+
+import Data.KdMap.Dynamic as K
 
 -- Bod v mapových souřadnicích, který se má vykreslit na sřed okna
 (xMapCenter, yMapCenter) = mouToKm (Mou 18600 59600)
@@ -179,34 +182,62 @@ hranice mous =
 maximálníPočetMístProVýškovnicei = 100     -- Sem si dej jiné číslo, když chceš ladit. Je to kvůli výkonnosti
 
 
-vyskovnice :: [Misto] -> [(Misto, Misto)]
-vyskovnice vrchy = 
+vyskovniceNevykonna :: [Misto] -> [(Misto, Misto)]
+vyskovniceNevykonna vrchy = 
    let prořeďenéVrchy = prořeďMísta vrchy
    in  fmap (\vrch -> (vrch, nejblizsiVyssi prořeďenéVrchy vrch) )  prořeďenéVrchy
+  where
+      nejblizsiVyssi ::  [Misto] -> Misto -> Misto
+      nejblizsiVyssi vrchy mujvrch = 
+         let jenVyssi = filter (jeMensi mujvrch) vrchy :: [Misto]
+             porovnani = compare `on` dalkaKvadrat mujvrch :: Misto -> Misto -> Ordering
+         in  if jenVyssi == [] then mujvrch 
+                              else minimumBy porovnani (filter (/=mujvrch) jenVyssi)
 
-nejblizsiVyssi ::  [Misto] -> Misto -> Misto
-nejblizsiVyssi vrchy mujvrch = 
-   let jenVyssi = filter (jeMensi mujvrch) vrchy :: [Misto]
-       porovnani = compare `on` dalkaKvadrat mujvrch :: Misto -> Misto -> Ordering
-   in  if jenVyssi == [] then mujvrch 
-                         else minimumBy porovnani (filter (/=mujvrch) jenVyssi)
+      jeMensi :: Misto -> Misto -> Bool
+      --jeMensi v1 v2 = vyska v1 < vyska v2
+      jeMensi = (<) `on` vyska
 
-jeMensi :: Misto -> Misto -> Bool
---jeMensi v1 v2 = vyska v1 < vyska v2
-jeMensi = (<) `on` vyska
+      vyska :: Misto -> Int
+      vyska (Misto mnm _) =  mnm
 
-vyska :: Misto -> Int
-vyska (Misto mnm _) =  mnm
+      dalkaKvadrat :: Misto -> Misto -> Int
+      dalkaKvadrat (Misto _ (Mou x1 y1)) (Misto _ (Mou x2 y2)) = (x1 - x2) ^ 2 + (y1 - y2) ^ 2
 
-dalkaKvadrat :: Misto -> Misto -> Int
-dalkaKvadrat (Misto _ (Mou x1 y1)) (Misto _ (Mou x2 y2)) = (x1 - x2) ^ 2 + (y1 - y2) ^ 2
+      prořeďMísta :: [Misto] -> [Misto]
+      prořeďMísta mista = prořeď (length mista `div` maximálníPočetMístProVýškovnicei + 1) mista
 
-prořeďMísta :: [Misto] -> [Misto]
-prořeďMísta mista = prořeď (length mista `div` maximálníPočetMístProVýškovnicei + 1) mista
+      -- Proředí seznam tak, že bere každou n-tou
+      prořeď :: Int -> [a] -> [a]
+      prořeď _ [] = []
+      prořeď n list
+         | n < 0 = list
+      prořeď n list = (head list: prořeď n (drop n list))
 
--- Proředí seznam tak, že bere každou n-tou
-prořeď :: Int -> [a] -> [a]
-prořeď _ [] = []
-prořeď n list
-     | n < 0 = list
-prořeď n list = (head list: prořeď n (drop n list))
+
+-------------------------------------------------------
+-- Výkonnější výškovnice pomocí KdTree
+--
+
+type MujKd = K.KdMap Int Mou Misto
+
+bodofce :: K.PointAsListFn Int Mou
+bodofce (Mou x y) = [x, y]
+
+-- Pro každé místo, určí místo dvojici v níž je toto místo a pak nejbližší vyšší místo k tomuto místu.
+-- Ve výsledném seznamu je o prvek méně než v e zdrojovém, protože nejvyšší vrchol nemá nejvyšší
+-- Kdyby náhodou několi nejvyšších mělo stejnou výšku, tak je nejvyšší ten nejvýchodnější a při shodě nejsevernější
+-- Ostatní nižší se vážou nelogicky na něho, ale to snad nenastane.
+--
+vyskovnice :: [Misto] -> [(Misto, Misto)]
+vyskovnice [] = []
+vyskovnice vrchyNerazene = 
+   -- Nejvyšší vrchol musíme očetřit zvlášť, protože k němu nebude výškovnice, dáme ho rovnou do KdTree, ať je co hledat
+   let (nejMisto@(Misto _ nejMou) : vrchy) = sortOn Down vrchyNerazene 
+       (_, vysl) = foldl' dalsiMisto (K.singleton bodofce (nejMou,  nejMisto), []) vrchy 
+   in  vysl
+   where
+      dalsiMisto :: (MujKd, [(Misto, Misto)]) -> Misto -> (MujKd, [(Misto, Misto)])
+      dalsiMisto x@(kd, vysl) misto@(Misto _ mou) = 
+         let (_, nejblizzsiVyssiMisto) = K.nearest kd mou
+         in (K.insert kd mou misto, ((misto, nejblizzsiVyssiMisto) : vysl))

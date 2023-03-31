@@ -40,6 +40,7 @@ dependencies:
 - http-client
 - svg-builder
 - colour
+- kdt
 
 library:
   source-dirs: src
