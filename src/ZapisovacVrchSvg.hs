@@ -219,10 +219,12 @@ vyskovniceNevykonna vrchy =
 -- Výkonnější výškovnice pomocí KdTree
 --
 
-type MujKd = K.KdMap Int Mou Misto
+type MujKd = K.KdMap Double Mou Misto
 
-bodofce :: K.PointAsListFn Int Mou
-bodofce (Mou x y) = [x, y]
+bodofce :: K.PointAsListFn Double Mou
+bodofce mou = 
+     let (xkm, ykm) = mouToKm mou
+      in [xkm, ykm]
 
 -- Pro každé místo, určí místo dvojici v níž je toto místo a pak nejbližší vyšší místo k tomuto místu.
 -- Ve výsledném seznamu je o prvek méně než v e zdrojovém, protože nejvyšší vrchol nemá nejvyšší
