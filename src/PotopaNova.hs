@@ -138,7 +138,7 @@ velikostMater (Stav _ _ mater _) = M.size mater
 
 
 instance Show Stav where
-   show (Stav (Optim okraj lastSitSize) sit mater klised) = [i|#sit= #{M.size sit} #mater=#{M.size mater} #klised=#{M.size klised} #okraj=#{S.size okraj} lastSitSize=#{lastSitSize}|] :: String
+   show (Stav (Optim okraj lastSitSize) sit mater klised) = [i|\#sit= #{M.size sit} \#mater=#{M.size mater} \#klised=#{M.size klised} \#okraj=#{S.size okraj} lastSitSize=#{lastSitSize}|] :: String
 
 
 
