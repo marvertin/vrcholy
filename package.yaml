@@ -41,6 +41,8 @@ dependencies:
 - svg-builder
 - colour
 - kdt
+- pqueue
+- mtl
 
 library:
   source-dirs: src

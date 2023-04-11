@@ -9,6 +9,8 @@ module ZapisovacVrchSvg
 import Lib
 import Uzemi
 import Gps
+import Voronai
+
 import Control.Arrow
 import VrchTypy(Vrch(..), Misto(..))
 import HraniceCeska
