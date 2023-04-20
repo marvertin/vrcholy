@@ -43,6 +43,8 @@ dependencies:
 - kdt
 - pqueue
 - mtl
+- hgeometry
+- random
 
 library:
   source-dirs: src
