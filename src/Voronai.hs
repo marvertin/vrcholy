@@ -86,11 +86,13 @@ zpracujUdalost ud = do
     put voro{vysl = vysl ++ [show ud] }
       
 
-prusecik :: (Double, Double) -> (Double, Double) -> Double -> (Double, Double)
+-- Průsečík dvou parabol daný ohnisky vlevo, vpravo a polohou řídící přímky na ose y
+-- Je rovnoběžná s osou x. Zajímají nás jen průsečíky, které leží na xové ose mezi těmi dvěma body.
+prusecik :: (Double, Double) -> (Double, Double) -> Double -> Double
 prusecik (x1, y1) (x2, y2) yd
-    | y1 == y2 =  ( (x1 + x2) / 2, (x1 + x2) / 2)
+    | y1 == y2 =  (x1 + x2) / 2
     | otherwise =
-         let 
+        let 
             m = (^2)
             yd1 = yd - y1
             yd2 = yd - y2
@@ -99,34 +101,36 @@ prusecik (x1, y1) (x2, y2) yd
             c = (m x1 + m y1) * yd2 - (m x2 + m y2) * yd1 + (yd1 - yd2) * m yd
             d = m b - 4 * a * c
             sd = sqrt d
-            xx1 = (-b + sd) / (2 * a)
-            xx2 = (-b - sd) / (2 * a)
-         in (xx1, xx2)   
+            xa = (-b + sd) / (2 * a)
+            xb = (-b - sd) / (2 * a)
+        in      if x1 < xa  && xa < x2 then xa
+           else if x1 < xb  && xb < x2 then xb
+           else 0
 
 
-kontrola :: (Double, Double) -> (Double, Double) -> Double -> ((Double, Double, Double), (Double, Double, Double))
+
+kontrola :: (Double, Double) -> (Double, Double) -> Double -> (Double, Double, Double)
 kontrola b1@(x1, y1) b2@(x2, y2) yd =
      let
          m = (^2)
          dopoY xxx =  (m xxx - 2 * x1 * xxx + m x1 + m y1 - m yd) / (-2 * (yd - y1))
-         (xa, xb) = prusecik b1 b2 yd
+         xa = prusecik b1 b2 yd
          ya = dopoY xa
-         yb = dopoY xb
          d qx1 qy1 qx2 qy2 = sqrt $ (qx1 - qx2)^2 + (qy1 - qy2)^2
          vzdalenosti x0 y0 = 
             let dalka = d x0 y0
             in (dalka x1 y1, dalka x2 y2, dalka x0 yd)
-     in (vzdalenosti xa ya,  vzdalenosti xb yb)  
+     in if xa == 0 then (0, 0, 1) else  vzdalenosti xa ya
 
 notP :: (a -> Bool) -> (a -> Bool)
 notP = (not .)
 
-sedi :: ((Double, Double, Double), (Double, Double, Double)) -> Bool
-sedi (a, b) =
+sedi :: (Double, Double, Double) -> Bool
+sedi a=
   let 
      p === q = p - q < 0.0000001
      se (x, y, z) = x === y && y === z || isNaN x
-  in se a && se b
+  in se a
 
 paruj :: [a] -> [(a,a)]
 paruj [] = []
@@ -137,7 +141,7 @@ kontrolaMox =
      let 
          cisla = randoms (mkStdGen 137) :: [Double]
          body = paruj $ (*100.1) <$> cisla
-         dvojbody = take 200000 $ paruj body
+         dvojbody = take 100000 $ paruj body
      -- in take 20 dvojbody
      in filter (notP sedi . fst) $ zip ( (flip (uncurry kontrola) 13.5) <$> dvojbody ) dvojbody
      -- in (flip (uncurry kontrola) 13.5) <$> dvojbody
